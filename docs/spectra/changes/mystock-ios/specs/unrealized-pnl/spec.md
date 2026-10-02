@@ -62,7 +62,19 @@ The system SHALL compute holding gain or loss as the current price multiplied by
 
 #### Scenario: Holding loss
 - **WHEN** symbol 2330 has 2200 remaining shares, total remaining cost 240000, and a current price of 109.09
-- **THEN** the system displays a holding loss of 4 and a holding return of 0.00%
+- **THEN** the system displays a holding loss of 2 and a holding return of 0.00%
+
+##### Example: price equal to the rounded average cost
+| Quantity | Total cost | Average cost per share | Current price | Holding result |
+| --- | --- | --- | --- | --- |
+| 2200 | 240000 | 109.09 | 109.09 | -2 |
+| 2200 | 240000 | 109.090909… | 109.090909… | 0 |
+
+The displayed average cost is rounded to two decimal places, so a current
+price copied from the displayed average does not reproduce a zero result.
+The system computes the result from the exact remaining cost and quantity,
+not from the rounded average, so the second row is the only case that
+returns 0.
 
 #### Scenario: Zero remaining cost
 - **WHEN** a holding's total remaining cost is 0 and a current price is available

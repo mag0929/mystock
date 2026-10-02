@@ -49,12 +49,45 @@ The system SHALL compute the realized profit of each sale-lot allocation as the 
 - **THEN** realized profit is -20000, remaining cost is 90000, and the unrealized result at 130 is +40000
 
 ### Requirement: Total profit conservation
-The system SHALL preserve total profit across every sale: the sum of realized profit over all sales of a symbol plus the current unrealized result of that symbol MUST equal total sale proceeds minus total acquisition cost, including fees and tax, for that symbol. The system's allocation mechanism MUST NOT change this total.
+For each symbol, the system SHALL satisfy the identity below, where every term is stated in the same units:
+
+`realized profit + sale deductions + unrealized result = remaining market value + sale proceeds − acquisition cost`
+
+Here acquisition cost includes the fees recorded on each buy lot, sale proceeds are gross of fees, sale deductions are the fees and transaction tax of the sales, remaining market value is the remaining cost basis plus the current unrealized result, and unrealized result is the remaining cost basis plus its market gain or loss. The system's allocation mechanism MUST NOT change the right-hand side or the total on the left.
+
+The remaining market value term is required because a sale removes shares without removing their cost basis: the cost basis stays on the left as unrealized result, so the proceeds have to be offset against it for the identity to close.
 
 #### Scenario: Total is independent of allocation
-- **GIVEN** symbol 2330 has a lot of 1000 shares at 150 and a lot of 1000 shares at 90
+- **GIVEN** symbol 2330 has a lot of 1000 shares at 150 and a lot of 1000 shares at 90, with no fees
 - **WHEN** 1000 shares are sold at 130
-- **THEN** realized profit plus unrealized result equals 20000 regardless of which lot the sale was allocated to
+- **THEN** realized profit plus sale deductions plus unrealized result equals 20000 regardless of which lot the sale was allocated to
+
+#### Scenario: Identity includes the remaining market value
+- **GIVEN** the same two lots and the same sale as the scenario above
+- **WHEN** the system computes both sides of the identity
+- **THEN** the remaining market value of 1000 remaining shares at 130, plus sale proceeds of 130000, equals the acquisition cost of 240000 plus the left-hand total of 20000
+
+##### Example: the identity evaluated on both sides
+
+- **GIVEN** two lots of 1000 shares at 150 and at 90 with no fees, and a
+  current price of 130
+- **WHEN** 1000 shares are sold at 130 and allocated entirely to the lot at 90
+- **THEN** both sides of the identity equal 20000
+
+| Term | Value |
+| --- | --- |
+| Realized profit, net of sale deductions | +39424.75 |
+| Sale deductions | 575.25 |
+| Unrealized result on the 1000 remaining shares, cost basis 150000 at 130 | −20000 |
+| Left side: realized plus deductions plus unrealized | 20000 |
+| Remaining market value, 1000 shares at 130 | 130000 |
+| Sale proceeds, 1000 shares at 130 | 130000 |
+| Acquisition cost, both lots | 240000 |
+| Right side: remaining market value plus proceeds − acquisition cost | 20000 |
+
+Omit the sale deductions row and the left side reads 19424.75 while the
+right side stays 20000, which is why the deductions term appears in the
+identity rather than being folded into the realized profit.
 
 ### Requirement: Stock allocation lots are never allocated
 The system SHALL reject any attempt to allocate a sale to a lot of type `stock-allocation`. When a user attempts this, the system SHALL report that the lot is a stock allocation lot and cannot be used for sale allocation.

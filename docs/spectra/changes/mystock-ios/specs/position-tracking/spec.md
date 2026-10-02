@@ -9,7 +9,7 @@ The system SHALL represent every purchase as a separate lot. Each lot MUST recor
 
 #### Scenario: Recording a purchase
 - **WHEN** the user saves a new buy lot for symbol 2330 with quantity 1000, price per share 150, date 2026-01-10, and fees 1425
-- **THEN** the system stores a lot with type `buy`, remaining quantity 1000, and total cost 150000
+- **THEN** the system stores a lot with type `buy`, remaining quantity 1000, and total cost 151425
 
 #### Scenario: Lot cost includes fees
 - **WHEN** the system computes a lot's total cost
