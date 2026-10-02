@@ -6,39 +6,37 @@ struct HoldingsListView: View {
     @State private var showLotEditor = false
 
     var body: some View {
-        List {
-            if let summary = viewModel.portfolioSummary {
-                PortfolioSummarySection(summary: summary)
-            }
+        NavigationStack {
+            List {
+                if let summary = viewModel.portfolioSummary {
+                    PortfolioSummarySection(summary: summary)
+                }
 
-            if viewModel.holdings.isEmpty {
-                ContentUnavailableView(
-                    "尚無持股",
-                    systemImage: "chart.line.uptrend.xyaxis",
-                    description: Text("按右上角新增批次開始記錄")
-                )
-            } else {
-                ForEach(viewModel.holdings) { holding in
-                    Section {
-                        HoldingSummaryRow(
-                            metrics: viewModel.metrics(for: holding),
-                            lots: holding.lots
-                        )
+                if viewModel.holdings.isEmpty {
+                    EmptyHoldingsState { showLotEditor = true }
+                } else {
+                    ForEach(viewModel.holdings) { holding in
+                        Section {
+                            HoldingSummaryRow(
+                                metrics: viewModel.metrics(for: holding),
+                                lots: holding.lots
+                            )
+                        }
                     }
                 }
             }
-        }
-        .listStyle(.insetGrouped)
-        .navigationTitle("持股")
-        .refreshable {
-            await viewModel.onPullToRefresh()
-        }
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showLotEditor = true
-                } label: {
-                    Label("新增批次", systemImage: "plus")
+            .listStyle(.insetGrouped)
+            .navigationTitle("持股")
+            .refreshable {
+                await viewModel.onPullToRefresh()
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showLotEditor = true
+                    } label: {
+                        Label("新增批次", systemImage: "plus")
+                    }
                 }
             }
         }
@@ -64,6 +62,29 @@ struct HoldingsListView: View {
         } message: {
             Text("將沿用先前價格計算損益")
         }
+    }
+}
+
+private struct EmptyHoldingsState: View {
+    let onAdd: () -> Void
+
+    var body: some View {
+        VStack(spacing: 16) {
+            ContentUnavailableView(
+                "尚無持股",
+                systemImage: "chart.line.uptrend.xyaxis",
+                description: Text("記錄每一筆買進與配股批次，即可追蹤成本與損益")
+            )
+            Button(action: onAdd) {
+                Label("新增批次", systemImage: "plus")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .padding(.horizontal)
+            .accessibilityIdentifier("holdings.addFirstLot")
+        }
+        .listRowSeparator(.hidden)
     }
 }
 
