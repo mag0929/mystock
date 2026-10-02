@@ -21,8 +21,7 @@ struct HoldingsPresentationTests {
             result: .success(Data(StubResponse.yahooSuccess.utf8))
         )
         let viewModel = HoldingsViewModel(quoteService: QuoteService(client: client))
-        viewModel.load(lots: lots())
-        await viewModel.onScreenAppeared()
+        await viewModel.loadAndRefresh(lots: lots())
         return viewModel
     }
 
@@ -37,6 +36,15 @@ struct HoldingsPresentationTests {
         #expect(metrics.totalQuantity == 2200)
         #expect(metrics.holdingResult == 46000)
         #expect(metrics.singleDayResult == 11000)
+    }
+
+    @Test("Per symbol rows show average cost, current price and the return percentage")
+    func rowsShowCostAndCurrentPrice() async {
+        let viewModel = await pricedViewModel()
+        let metrics = viewModel.metrics(for: viewModel.holdings[0])
+
+        #expect(metrics.averageCostPerShare == Decimal(240000) / Decimal(2200))
+        #expect((metrics.holdingReturnPercentage ?? .zero).rounded(scale: 4) == Decimal(string: "0.1917"))
     }
 
     @Test("Per lot rows show the stock allocation type and hide its costs")

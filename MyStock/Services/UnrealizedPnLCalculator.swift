@@ -12,6 +12,13 @@ struct HoldingMetrics: Equatable {
     let isUsingFallbackPrice: Bool
 
     var isAvailable: Bool { currentPrice != nil }
+
+    /// Nil when nothing is held, so the screen can say why instead of
+    /// printing a zero that reads like a real cost.
+    var averageCostPerShare: Decimal? {
+        guard totalQuantity > 0 else { return nil }
+        return totalRemainingCost / Decimal(totalQuantity)
+    }
 }
 
 struct PortfolioTotals: Equatable {

@@ -25,10 +25,9 @@ struct ScreenRenderingTests {
             result: .success(Data(StubResponse.yahooSuccess.utf8))
         )
         let viewModel = HoldingsViewModel(quoteService: QuoteService(client: client))
-        viewModel.load(lots: lots)
-        await viewModel.onScreenAppeared()
+        await viewModel.loadAndRefresh(lots: lots)
 
-        imageRenderer(HoldingsListView(viewModel: viewModel))
+        imageRenderer(HoldingsListView(viewModel: viewModel, lots: lots))
     }
 
     @Test("Holdings screen renders its empty state")
@@ -36,7 +35,7 @@ struct ScreenRenderingTests {
         let viewModel = HoldingsViewModel()
         viewModel.load(lots: [])
 
-        imageRenderer(HoldingsListView(viewModel: viewModel))
+        imageRenderer(HoldingsListView(viewModel: viewModel, lots: []))
     }
 
     @Test("Lot row renders for both lot types")

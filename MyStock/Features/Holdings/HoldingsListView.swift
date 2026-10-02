@@ -3,6 +3,7 @@ import SwiftUI
 
 struct HoldingsListView: View {
     @Bindable var viewModel: HoldingsViewModel
+    let lots: [Lot]
     @State private var showLotEditor = false
 
     var body: some View {
@@ -43,8 +44,8 @@ struct HoldingsListView: View {
         .sheet(isPresented: $showLotEditor) {
             LotEditorView(holdingsViewModel: viewModel)
         }
-        .task {
-            await viewModel.onScreenAppeared()
+        .task(id: lots.count) {
+            await viewModel.loadAndRefresh(lots: lots)
         }
         .overlay {
             if viewModel.isRefreshing {
@@ -125,13 +126,23 @@ private struct HoldingSummaryRow: View {
             HStack {
                 Text(metrics.symbol).font(.headline)
                 Spacer()
-                Text(metrics.currentPrice.map { Format.decimal($0) } ?? "無報價")
-                    .font(.headline.monospacedDigit())
+                Text("\(metrics.totalQuantity) 股")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
                 if metrics.isUsingFallbackPrice {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundStyle(.orange)
                         .accessibilityLabel("使用收盤價備援")
                 }
+            }
+
+            HStack {
+                metricLabel(
+                    "均價",
+                    metrics.averageCostPerShare.map { Format.decimal($0) } ?? "不可用"
+                )
+                Spacer()
+                metricLabel("現價", metrics.currentPrice.map { Format.decimal($0) } ?? "無報價")
             }
 
             HStack(spacing: 16) {
@@ -143,6 +154,10 @@ private struct HoldingSummaryRow: View {
                 metricLabel(
                     "持有收益",
                     metrics.holdingResult.map { Format.signedDecimal($0) } ?? "不可用"
+                )
+                metricLabel(
+                    "報酬率",
+                    metrics.holdingReturnPercentage.map { Format.percent($0) } ?? "不可用"
                 )
             }
 

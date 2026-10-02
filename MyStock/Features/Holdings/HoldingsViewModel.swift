@@ -70,6 +70,13 @@ final class HoldingsViewModel {
         holdings = HoldingCalculator.currentHoldings(from: lots)
     }
 
+    /// Loads the lots and fetches their quotes as one step, so the screen
+    /// never shows holdings with no price because the fetch ran first.
+    func loadAndRefresh(lots: [Lot]) async {
+        load(lots: lots)
+        await refreshQuotes()
+    }
+
     func onScreenAppeared() async {
         await refreshQuotes()
     }

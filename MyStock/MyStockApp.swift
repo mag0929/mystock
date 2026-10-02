@@ -25,14 +25,8 @@ struct MainTabView: View {
 
     var body: some View {
         TabView {
-            HoldingsListView(viewModel: holdingsViewModel)
+            HoldingsListView(viewModel: holdingsViewModel, lots: lots)
                 .tabItem { Label("持股", systemImage: "chart.line.uptrend.xyaxis") }
-                .onAppear {
-                    holdingsViewModel.load(lots: lots)
-                }
-                .onChange(of: lots.count) { _, _ in
-                    holdingsViewModel.load(lots: lots)
-                }
 
             SaleListView(lots: lots)
                 .tabItem { Label("賣出", systemImage: "arrow.up.circle") }
