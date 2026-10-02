@@ -63,6 +63,14 @@ struct RealizedProfitView: View {
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
+                                if !sale.isCompleteAllocation {
+                                    Label(
+                                        "配對不足，\(sale.allocatedQuantity)/\(sale.quantity) 股",
+                                        systemImage: "exclamationmark.triangle.fill"
+                                    )
+                                    .font(.caption)
+                                    .foregroundStyle(.orange)
+                                }
                             }
                             .padding(.vertical, 2)
                         }

@@ -14,6 +14,37 @@ final class LotEditorViewModel {
 
     private(set) var lot: Lot?
 
+    private var editingLotID: UUID?
+    private let originalTotalFees: Decimal?
+
+    init(lot: Lot? = nil) {
+        editingLotID = lot?.id
+        originalTotalFees = lot?.totalFees
+        if let lot {
+            symbol = lot.symbol
+            lotDate = lot.lotDate
+            quantityText = String(lot.quantity)
+            pricePerShareText = lot.lotType == .stockAllocation
+                ? ""
+                : Format.decimal(lot.pricePerShare)
+            isStockAllocation = lot.lotType == .stockAllocation
+        }
+    }
+
+    var isEditing: Bool { editingLotID != nil }
+
+    /// Editing must not restate the fees: the rate was snapshotted when the lot was
+    /// created, and the settings screen promises later rate changes never apply
+    /// backwards to existing lots.
+    private var feesToWrite: Decimal {
+        originalTotalFees ?? 0
+    }
+
+    func existingLot(in context: ModelContext) -> Lot? {
+        guard let editingLotID else { return nil }
+        return try? context.fetch(FetchDescriptor<Lot>()).first { $0.id == editingLotID }
+    }
+
     func canSave(context: ModelContext) -> Bool {
         guard !symbol.trimmingCharacters(in: .whitespaces).isEmpty else { return false }
         guard let quantity = Int(quantityText), quantity > 0 else { return false }
@@ -30,6 +61,10 @@ final class LotEditorViewModel {
         }
         guard let quantity = Int(quantityText), quantity > 0 else {
             errorMessage = "股數必須是大於 0 的整數"
+            return
+        }
+        if let existing = existingLot(in: context) {
+            saveEdit(of: existing, symbol: trimmedSymbol, quantity: quantity, in: context)
             return
         }
         if isStockAllocation {
@@ -68,6 +103,28 @@ final class LotEditorViewModel {
             errorMessage = "儲存失敗：\(error.localizedDescription)"
             context.delete(newLot)
             lot = nil
+        }
+    }
+
+    private func saveEdit(of existing: Lot, symbol: String, quantity: Int, in context: ModelContext) {
+        do {
+            try LotStore.update(
+                existing,
+                symbol: symbol,
+                lotDate: lotDate,
+                quantity: quantity,
+                pricePerShare: isStockAllocation ? 0 : (Decimal(string: pricePerShareText) ?? 0),
+                totalFees: feesToWrite,
+                lotType: isStockAllocation ? .stockAllocation : .buy,
+                in: context
+            )
+            lot = existing
+            savedLotSymbol = symbol
+            errorMessage = nil
+        } catch let error as LotEditError {
+            errorMessage = error.errorDescription
+        } catch {
+            errorMessage = "儲存失敗：\(error.localizedDescription)"
         }
     }
 }

@@ -12,7 +12,9 @@
 
 ## 3. 批次管理與配股
 
-- [x] 3.1 實作批次的建立、修改、刪除（`Create, edit, and delete lots`），刪除批次時連帶移除引用它的賣出配對並即時重算持股數字。驗證：單元測試「Deleting a lot that has sale allocations」確認配對被移除且剩餘股數與未實現損益更新
+- [x] 3.1 實作批次的建立、修改、刪除（`Create, edit, and delete lots`），刪除批次時連帶移除引用它的賣出配對並即時重算持股數字。驗證：單元測試「Deleting a lot that has sale allocations」確認配對被移除且剩餘股數與未實現損益更新；「Editing keeps the shares already sold out of the remaining count」與「Editing does not recalculate the fees that were snapshotted at creation」確認修改不會回溯費用或讓已賣出的股數回到剩餘股數；「Shrinking a lot below what was already sold is rejected」確認低於已賣出股數的修改會被拒絕且不寫入
+- [x] 3.1b 在持股畫面提供修改與刪除入口（`The user can reach edit and delete from the holdings screen`）：展開後點擊批次列開啟編輯表單、左滑批次列刪除，刪除前顯示確認並告知會影響哪些賣出配對。驗證：UI 測試 `testALotCanBeEdited` 確認改股數後回到持股清單且新舊數字都正確、`testALotCanBeDeleted` 確認刪掉唯一批次後回到空狀態
+- [x] 3.1c 批次被刪除後，原本配對到它的賣出紀錄標記為配對不足（`is reported as incompletely allocated`），於已實現損益畫面標示「配對不足 x/y 股」。驗證：單元測試「A sale left with no allocations is reported as incompletely allocated」
 - [x] 3.2 在新增／異動股倉表單加入配股勾選（`Allocation lots for ex-rights stock dividends`），勾選後該筆記為 0 成本、零費用、股數即為剩餘股數，並計入持股總數。驗證：單元測試「Creating a stock allocation lot」與「stock allocation effect on a holding」範例（2000 股成本 240000 加配股 200 股後為 2200 股、成本 240000、每股 109.09）通過
 - [x] 3.3 實作配股批次不列入賣出配對候選（`Stock allocation lots are excluded from sale allocation candidates`），候選清單只顯示類型為 `buy` 且剩餘股數大於 0 的批次。驗證：單元測試「Sale allocation list contents」確認兩筆買進批次出現、配股批次不出現
 - [x] 3.4 實作持股逐批次顯示（`Per-lot display with type indicator`），每列顯示批次日期、股數、單價、費用、剩餘股數、類型；配股批次的成本欄位顯示為不可用而非 0。驗證：手動檢查含配股批次的持股展開列，確認類型顯示「配股」且成本欄位非 0；單元測試確認賣出配對清單不含配股批次

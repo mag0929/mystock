@@ -30,7 +30,20 @@ The system SHALL identify each holding by Taiwan stock symbol as the primary gro
 - **THEN** the system presents both lots under a single 2330 holding entry
 
 ### Requirement: Create, edit, and delete lots
-The system SHALL allow the user to create, edit, and delete any lot. Deleting a lot SHALL also remove every sale allocation that references that lot, and the system SHALL recompute the affected holdings immediately after the deletion.
+The system SHALL allow the user to create, edit, and delete any lot. Deleting a lot SHALL also remove every sale allocation that references that lot, and the system SHALL recompute the affected holdings immediately after the deletion. Editing a lot SHALL NOT restate its fees, because the fee rate is snapshotted when the lot is created and later rate changes never apply backwards. Editing a lot's share count below the shares already sold from it SHALL be rejected rather than silently clamped.
+
+#### Scenario: Editing a lot
+- **WHEN** the user edits a lot's share count, price, and date
+- **THEN** the system saves those figures to the same lot, keeps the shares already sold out of the remaining count, and keeps the fees recorded when the lot was created
+
+##### Example: editing a partially sold lot
+- **GIVEN** symbol 2330 has a lot of 1000 shares at 150, of which 400 were sold
+- **WHEN** the user edits the lot to 800 shares
+- **THEN** the lot records quantity 800 and remaining quantity 400
+
+#### Scenario: Editing below the sold quantity
+- **WHEN** the user edits a lot of 1000 shares down to 300 when 600 of them were already sold
+- **THEN** the system rejects the change with an error naming the sold quantity, and the lot keeps quantity 1000 and remaining quantity 400
 
 #### Scenario: Deleting a lot that has sale allocations
 - **WHEN** the user deletes a lot that was previously consumed by a recorded sale
@@ -40,6 +53,15 @@ The system SHALL allow the user to create, edit, and delete any lot. Deleting a 
 - **GIVEN** symbol 2330 has a lot of 1000 shares at 90 and a lot of 1000 shares at 150, and a sale of 1000 shares at 130 was allocated entirely to the lot at 90
 - **WHEN** the user deletes the lot at 90
 - **THEN** the sale has 0 shares allocated and is reported as incompletely allocated, and symbol 2330 reports 1000 remaining shares with total cost 150000
+
+#### Scenario: The user can reach edit and delete from the holdings screen
+- **WHEN** the user expands a holding and looks at one of its lots
+- **THEN** the system lets the user open that lot for editing by tapping it, and offers a delete action by swiping it
+
+##### Example: editing and deleting from the list
+- **GIVEN** the holdings screen shows symbol 2330 with 2 lots
+- **WHEN** the user expands the holding, taps a lot and saves a new share count, then swipes a lot and confirms the deletion
+- **THEN** the edited lot shows the new share count and the deleted lot no longer appears in the list
 
 ### Requirement: Allocation lots for ex-rights stock dividends
 The system SHALL provide a checkbox on the create-lot and edit-lot forms that marks the lot as a stock allocation. A lot marked as a stock allocation SHALL record the entered quantity as its remaining quantity, SHALL record a total cost of zero, SHALL be excluded from all fee calculations, and SHALL be included in the holding's total share count.

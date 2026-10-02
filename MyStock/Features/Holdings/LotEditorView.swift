@@ -4,8 +4,15 @@ import SwiftData
 struct LotEditorView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
-    @State private var viewModel = LotEditorViewModel()
+    @State private var viewModel: LotEditorViewModel
     let holdingsViewModel: HoldingsViewModel
+
+    init(holdingsViewModel: HoldingsViewModel, lot: Lot? = nil) {
+        self.holdingsViewModel = holdingsViewModel
+        _viewModel = State(initialValue: LotEditorViewModel(lot: lot))
+    }
+
+    private var isEditing: Bool { viewModel.isEditing }
 
     var body: some View {
         NavigationStack {
@@ -15,6 +22,7 @@ struct LotEditorView: View {
                         .textInputAutocapitalization(.characters)
                     DatePicker("批次日期", selection: $viewModel.lotDate, displayedComponents: .date)
                     Toggle("配股", isOn: $viewModel.isStockAllocation)
+                        .disabled(isEditing)
                 }
 
                 Section {
@@ -27,14 +35,10 @@ struct LotEditorView: View {
                 } header: {
                     Text(viewModel.isStockAllocation ? "配股批次" : "買進批次")
                 } footer: {
-                    Text(
-                        viewModel.isStockAllocation
-                            ? "配股批次成本與費用記為 0，計入持股總數，但不會出現在賣出配對候選清單。"
-                            : "費用依設定費率於建立當下計算並固定寫入此批次。"
-                    )
+                    Text(footerText)
                 }
             }
-            .navigationTitle("新增批次")
+            .navigationTitle(isEditing ? "編輯批次" : "新增批次")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -62,5 +66,14 @@ struct LotEditorView: View {
                 Text(viewModel.errorMessage ?? "")
             }
         }
+    }
+
+    private var footerText: String {
+        if isEditing {
+            return "費用依建立當時的費率固定，不會因這次修改而重新計算。批次類型不可變更。"
+        }
+        return viewModel.isStockAllocation
+            ? "配股批次成本與費用記為 0，計入持股總數，但不會出現在賣出配對候選清單。"
+            : "費用依設定費率於建立當下計算並固定寫入此批次。"
     }
 }

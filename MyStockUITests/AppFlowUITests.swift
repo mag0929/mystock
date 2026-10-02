@@ -24,6 +24,22 @@ final class AppFlowUITests: XCTestCase {
             "配股批次應出現在同一代號的批次清單中"
         )
 
+        app.buttons["holdings.toggleLots"].tap()
+
+        XCTAssertTrue(
+            app.cells.containing(
+                NSPredicate(format: "label CONTAINS '配股'")
+            ).firstMatch.waitForExistence(timeout: 5),
+            "展開後配股批次應列在買進批次之下"
+        )
+        XCTAssertEqual(
+            app.cells.containing(
+                NSPredicate(format: "label CONTAINS '剩餘'")
+            ).count,
+            2,
+            "同一代號應有兩個批次列"
+        )
+
         app.tabBars.buttons["賣出"].tap()
 
         let recordSale = app.buttons["記錄賣出"].firstMatch

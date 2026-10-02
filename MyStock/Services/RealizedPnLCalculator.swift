@@ -31,6 +31,12 @@ struct SaleResult: Equatable {
     var allocatedQuantity: Int {
         allocations.reduce(0) { $0 + $1.quantity }
     }
+
+    /// Deleting a lot strips its allocations but leaves the sale in place, so a sale
+    /// can end up with fewer shares accounted for than it recorded.
+    var isCompleteAllocation: Bool {
+        allocatedQuantity == quantity
+    }
 }
 
 enum RealizedPnLCalculator {
