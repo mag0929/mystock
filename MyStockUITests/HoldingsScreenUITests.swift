@@ -18,21 +18,59 @@ final class HoldingsScreenUITests: XCTestCase {
         )
         addButton.tap()
 
-        let symbolField = app.textFields.firstMatch
+        let symbolField = app.textFields["lotEditor.symbol"]
         XCTAssertTrue(symbolField.waitForExistence(timeout: 5), "新增批次表單應出現")
 
         symbolField.tap()
         symbolField.typeText("2330")
-        app.textFields.element(boundBy: 1).tap()
-        app.textFields.element(boundBy: 1).typeText("1000")
-        app.textFields.element(boundBy: 2).tap()
-        app.textFields.element(boundBy: 2).typeText("150")
+        // The name lookup is skipped under -ui-testing, so a code with no stored
+        // name lands in the "unknown, type it yourself" branch.
+        let nameField = app.textFields["lotEditor.displayName"]
+        XCTAssertTrue(nameField.waitForExistence(timeout: 5), "股票名稱欄位應出現，讓使用者確認或自行輸入")
+        nameField.tap()
+        nameField.typeText("台積電")
+
+        let quantityField = app.textFields["lotEditor.quantity"]
+        quantityField.tap()
+        quantityField.typeText("1000")
+        let priceField = app.textFields["lotEditor.price"]
+        priceField.tap()
+        priceField.typeText("150")
 
         app.buttons["儲存"].tap()
 
         XCTAssertTrue(
-            app.staticTexts["2330"].waitForExistence(timeout: 5),
+            app.staticTexts["2330"].firstMatch.waitForExistence(timeout: 5),
             "儲存後應在持股清單看到該批次"
+        )
+    }
+
+    func testTypedNameIsSavedAndShownNextToTheSymbol() {
+        let addButton = app.buttons["新增批次"].firstMatch
+        XCTAssertTrue(addButton.waitForExistence(timeout: 5), "持股畫面必須有可見的新增批次按鈕")
+        addButton.tap()
+
+        let symbolField = app.textFields["lotEditor.symbol"]
+        XCTAssertTrue(symbolField.waitForExistence(timeout: 5), "新增批次表單應出現")
+        symbolField.tap()
+        symbolField.typeText("2330")
+
+        let nameField = app.textFields["lotEditor.displayName"]
+        XCTAssertTrue(nameField.waitForExistence(timeout: 5), "股票名稱欄位應出現")
+        nameField.tap()
+        nameField.typeText("台積電")
+
+        let quantityField = app.textFields["lotEditor.quantity"]
+        quantityField.tap()
+        quantityField.typeText("1000")
+        let priceField = app.textFields["lotEditor.price"]
+        priceField.tap()
+        priceField.typeText("150")
+        app.buttons["儲存"].tap()
+
+        XCTAssertTrue(
+            app.staticTexts["台積電"].waitForExistence(timeout: 5),
+            "只看到 2330 無法知道是哪檔股票，持股清單應顯示名稱"
         )
     }
 
@@ -58,14 +96,16 @@ final class HoldingsScreenUITests: XCTestCase {
         XCTAssertTrue(addButton.waitForExistence(timeout: 5), "找不到新增批次按鈕")
         addButton.tap()
 
-        let symbolField = app.textFields.firstMatch
+        let symbolField = app.textFields["lotEditor.symbol"]
         XCTAssertTrue(symbolField.waitForExistence(timeout: 5), "批次表單應出現")
         symbolField.tap()
         symbolField.typeText(symbol)
-        app.textFields.element(boundBy: 1).tap()
-        app.textFields.element(boundBy: 1).typeText(quantity)
-        app.textFields.element(boundBy: 2).tap()
-        app.textFields.element(boundBy: 2).typeText(price)
+        let quantityField = app.textFields["lotEditor.quantity"]
+        quantityField.tap()
+        quantityField.typeText(quantity)
+        let priceField = app.textFields["lotEditor.price"]
+        priceField.tap()
+        priceField.typeText(price)
         app.buttons["儲存"].tap()
     }
 
@@ -98,7 +138,7 @@ final class HoldingsScreenUITests: XCTestCase {
             "點擊批次列應開啟編輯表單，而不是唯讀"
         )
 
-        let quantityField = app.textFields.element(boundBy: 1)
+        let quantityField = app.textFields["lotEditor.quantity"]
         quantityField.tap()
         // Append rather than replace: "1000" plus "2000" would read as 10002000,
         // which still contains "2,000" and would let a broken edit pass.

@@ -35,7 +35,7 @@ struct RealizedProfitView: View {
                 if let result = viewModel.result, !result.bySymbol.isEmpty {
                     Section("依代號") {
                         ForEach(result.bySymbol, id: \.symbol) { group in
-                            LabeledContent(group.symbol) {
+                            LabeledContent(label(for: group.symbol)) {
                                 Text(Format.signedDecimal(group.realizedTotal))
                                     .foregroundStyle(color(for: group.realizedTotal))
                             }
@@ -49,7 +49,7 @@ struct RealizedProfitView: View {
                             VStack(alignment: .leading, spacing: 6) {
                                 HStack {
                                     Text(Format.date(sale.saleDate))
-                                    Text(sale.symbol).font(.caption).foregroundStyle(.secondary)
+                                    Text(label(for: sale.symbol)).font(.caption).foregroundStyle(.secondary)
                                     Spacer()
                                     Text(Format.signedDecimal(sale.realizedResult))
                                         .foregroundStyle(color(for: sale.realizedResult))
@@ -113,6 +113,13 @@ struct RealizedProfitView: View {
 
     private func reload() {
         viewModel.load(context: context)
+    }
+
+    private func label(for symbol: String) -> String {
+        guard let name = StockStore.name(for: symbol, in: context), !name.isEmpty else {
+            return symbol
+        }
+        return "\(symbol) \(name)"
     }
 
     private func color(for value: Decimal?) -> Color {

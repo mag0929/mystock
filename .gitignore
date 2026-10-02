@@ -16,3 +16,8 @@ xcuserdata/
 # Spectra
 .spectra/
 docs/spectra/.vector-search.db*
+
+# Design source files. The icon is committed at
+# MyStock/Assets.xcassets/AppIcon.appiconset/AppIcon.png, so a copy of the
+# original here would only duplicate ~1.3MB in the repository.
+icon/

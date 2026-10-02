@@ -11,12 +11,20 @@ final class LotEditorViewModel {
     var isStockAllocation: Bool = false
     var errorMessage: String?
     var savedLotSymbol: String?
+    var displayName: String = ""
+    var isResolvingName = false
+    var nameLookupFailed = false
 
     private(set) var lot: Lot?
 
     private var editingLotID: UUID?
+    private var resolvedSymbol: String?
 
-    init(lot: Lot? = nil) {
+    init(
+        lot: Lot? = nil,
+        directory: StockDirectory = StockDirectory()
+    ) {
+        self.directory = directory
         editingLotID = lot?.id
         if let lot {
             symbol = lot.symbol
@@ -27,6 +35,46 @@ final class LotEditorViewModel {
                 : Format.decimal(lot.pricePerShare)
             isStockAllocation = lot.lotType == .stockAllocation
         }
+    }
+
+    private let directory: StockDirectory
+
+    /// Looks the symbol's name up so the user does not have to remember which
+    /// company a four digit code belongs to. A name the user typed wins over the
+    /// lookup, and a name already on file is used without asking the network.
+    func resolveName(for typedSymbol: String, context: ModelContext) async {
+        let trimmed = typedSymbol.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty, trimmed != resolvedSymbol else { return }
+        resolvedSymbol = trimmed
+
+        if let known = StockStore.name(for: trimmed, in: context) {
+            displayName = known
+            nameLookupFailed = false
+            return
+        }
+
+        guard !ProcessInfo.processInfo.arguments.contains("-ui-testing") else {
+            displayName = ""
+            nameLookupFailed = true
+            return
+        }
+
+        isResolvingName = true
+        defer { isResolvingName = false }
+        let resolved = await directory.name(for: trimmed)
+        guard resolvedSymbol == trimmed else { return }
+        nameLookupFailed = true
+        if let name = resolved.name {
+            displayName = name
+            nameLookupFailed = false
+            try? StockStore.upsertName(name, for: trimmed, in: context)
+        } else {
+            displayName = ""
+        }
+    }
+
+    func updateName(_ name: String) {
+        displayName = name.trimmingCharacters(in: .whitespaces)
     }
 
     var isEditing: Bool { editingLotID != nil }
@@ -86,6 +134,9 @@ final class LotEditorViewModel {
         }
         guard let newLot = lot else { return }
         context.insert(newLot)
+        if !displayName.isEmpty {
+            try? StockStore.upsertName(displayName, for: trimmedSymbol, in: context)
+        }
         do {
             try context.save()
             savedLotSymbol = trimmedSymbol

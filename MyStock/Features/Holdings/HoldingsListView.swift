@@ -49,7 +49,7 @@ struct HoldingsListView: View {
             LotEditorView(holdingsViewModel: viewModel, lot: lot)
         }
         .task(id: lotsSignature) {
-            await viewModel.loadAndRefresh(lots: lots)
+            await viewModel.loadAndRefresh(lots: lots, context: context)
         }
         .confirmationDialog(
             "刪除批次",
@@ -163,7 +163,7 @@ struct HoldingsListView: View {
         deletionMessage = nil
         do {
             try LotStore.delete(lot, in: context)
-            Task { await viewModel.loadAndRefresh(lots: lots.filter { $0.id != lot.id }) }
+            Task { await viewModel.loadAndRefresh(lots: lots.filter { $0.id != lot.id }, context: context) }
         } catch {
             errorMessage = "刪除失敗：\(error.localizedDescription)"
         }
@@ -228,8 +228,11 @@ private struct HoldingSummaryRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(metrics.symbol).font(.headline)
+                if let name = metrics.displayName, !name.isEmpty {
+                    Text(name).font(.subheadline).foregroundStyle(.secondary)
+                }
                 Spacer()
                 Text(Format.decimal(Decimal(metrics.totalQuantity), fractionDigits: 0) + " 股")
                     .font(.subheadline)

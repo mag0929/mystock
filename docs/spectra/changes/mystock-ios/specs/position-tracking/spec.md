@@ -46,6 +46,66 @@ The system SHALL represent every purchase as a separate lot. Each lot MUST recor
 | 1000 | 90 | 1425 | 91425 |
 | 200 | 109.09 | 0 | 21818 |
 
+### Requirement: Stock name lookup from the symbol
+The system SHALL treat a bare symbol as ambiguous and SHALL therefore resolve the company name when the user finishes entering a symbol, saving the result so later screens and later sessions show it without another lookup. The system SHALL prefer exchange sources, because they carry the Chinese short name, and SHALL treat a lookup failure as non-blocking.
+
+#### Scenario: Entering a symbol brings up the name
+- **WHEN** the user enters symbol 2330 in the lot form
+- **THEN** the system resolves the name from the TWSE listing before saving, and the form shows the resolved name beside the symbol
+
+##### Example: TWSE short name
+- **GIVEN** the TWSE daily report for 2330 has title "115年06月 2330 台積電           各日成交資訊"
+- **WHEN** the user enters symbol 2330
+- **THEN** the form shows "台積電", not the English "TAIWAN SEMICONDUCTOR"
+
+##### Example: a name already on file
+- **GIVEN** symbol 2330 already has the stored name 台積電
+- **WHEN** the user enters symbol 2330
+- **THEN** the form shows 台積電 without any request to TWSE, TPEx, or Yahoo
+
+##### Example: a user correction survives
+- **GIVEN** the user corrected the stored name for 2330 to 台灣積體電路
+- **WHEN** they enter 2330 again
+- **THEN** the form still shows 台灣積體電路, not the exchange name 台積電
+
+##### Example: an OTC code
+- **GIVEN** the TWSE report for 6488 has no data, and the TPEx daily report has a row ["6488","環球晶","420.0"]
+- **WHEN** the user enters symbol 6488
+- **THEN** the form shows 環球晶
+
+##### Example: correcting a wrong name
+- **WHEN** the user replaces the resolved name with 聯電 before saving the lot
+- **THEN** the lot saves with the name 聯電, and the holdings row for 2303 reads "2303 聯電"
+
+#### Scenario: A lookup that finds nothing does not block saving
+- **WHEN** every name source fails or returns nothing for the entered symbol
+- **THEN** the form still allows saving the lot, and the holding is identified by its symbol alone
+
+##### Example: several lots of one symbol
+- **GIVEN** symbol 2330 already has the stored name 台積電, and the user later adds a second lot of 2330 and corrects the name to 台灣積體電路
+- **WHEN** the second lot is saved
+- **THEN** the app holds one stored name row for 2330, now reading 台灣積體電路
+
+### Requirement: Displaying the name next to the symbol
+The system SHALL show the saved name alongside the symbol wherever a symbol is presented as an identifier, so the user can tell which company a holding refers to.
+
+#### Scenario: The holdings list identifies a holding by name
+- **WHEN** symbol 2330 has a saved name of 台積電
+- **THEN** the holdings summary row reads "2330 台積電" rather than a bare "2330"
+
+#### Scenario: The sale symbol picker identifies a stock by name
+- **WHEN** the sale form lists the symbols that have lots
+- **THEN** each option reads "symbol name" when a name is stored, and falls back to the bare symbol when none is stored
+
+#### Scenario: Realized profit groups and rows identify a stock by name
+- **WHEN** the realized profit screen lists a symbol group or a single sale
+- **THEN** each reads "symbol name" when a name is stored, and falls back to the bare symbol when none is stored
+
+##### Example: a group heading with a name
+- **GIVEN** symbol 2330 has the stored name 台積電
+- **WHEN** the screen lists the realized profit group for 2330
+- **THEN** the group heading reads "2330 台積電"
+
 ### Requirement: Stock symbol identity
 The system SHALL identify each holding by Taiwan stock symbol as the primary grouping key. The system SHALL accept a symbol that the user has already created without requiring the user to re-enter the stock name, and the system SHALL allow the user to supply or correct the stock display name at any time.
 

@@ -5,6 +5,7 @@ enum HoldingCalculator {
     struct Holding: Identifiable {
         let symbol: String
         let lots: [Lot]
+        var displayName: String?
 
         var id: String { symbol }
 

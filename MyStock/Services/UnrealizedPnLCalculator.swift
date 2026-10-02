@@ -2,6 +2,7 @@ import Foundation
 
 struct HoldingMetrics: Equatable {
     let symbol: String
+    let displayName: String?
     let currentPrice: Decimal?
     let priceChangePercentage: Decimal?
     let singleDayResult: Decimal?
@@ -45,6 +46,7 @@ enum UnrealizedPnLCalculator {
         guard let quote, let currentPrice = quote.currentPrice else {
             return HoldingMetrics(
                 symbol: holding.symbol,
+                displayName: holding.displayName,
                 currentPrice: nil,
                 priceChangePercentage: nil,
                 singleDayResult: nil,
@@ -60,6 +62,7 @@ enum UnrealizedPnLCalculator {
         let holdingResult = currentPrice * quantity - cost
         return HoldingMetrics(
             symbol: holding.symbol,
+            displayName: holding.displayName,
             currentPrice: currentPrice,
             priceChangePercentage: quote.changePercentage,
             singleDayResult: singleDayResult,

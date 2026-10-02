@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import SwiftData
 
 struct PortfolioSummary {
     let priceChangeText: String?
@@ -70,10 +71,25 @@ final class HoldingsViewModel {
         holdings = HoldingCalculator.currentHoldings(from: lots)
     }
 
+    /// Attaches the stored company names so the screen can show "2330 台積電"
+    /// instead of a bare code.
+    func applyDisplayNames(in context: ModelContext) {
+        for index in holdings.indices {
+            let symbol = holdings[index].symbol
+            holdings[index].displayName = StockStore.name(for: symbol, in: context)
+        }
+    }
+
     /// Loads the lots and fetches their quotes as one step, so the screen
     /// never shows holdings with no price because the fetch ran first.
     func loadAndRefresh(lots: [Lot]) async {
         load(lots: lots)
+        await refreshQuotes()
+    }
+
+    func loadAndRefresh(lots: [Lot], context: ModelContext) async {
+        load(lots: lots)
+        applyDisplayNames(in: context)
         await refreshQuotes()
     }
 

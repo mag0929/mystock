@@ -9,6 +9,8 @@
 - [x] 2.1 實作 `Lot` 模型（`Lot data model`）：含 lot 識別碼、股票代號、批次日期、股數、單價、總費用、剩餘股數、lot 類型，類型為 `buy` 或 `stock-allocation`；總成本＝股數 × 單價 + 費用，剩餘股數＝買進股數 − 已被賣出批次消耗的股數。驗證：單元測試「Recording a purchase」與「Lot cost includes fees」範例表中三組數值皆通過
 - [x] 2.2 實作 SwiftData 的 `ModelContainer` 與本機持久化（`Local-only persistence`），使所有持股與批次資料在 App 重啟後完整還原，且全程不需要帳號或網路。驗證：手動建立兩筆批次後強制結束 App 再啟動，確認兩筆資料與剩餘股數皆存在；另以單元測試在無網路環境下還原容器成功
 - [x] 2.3 實作股票代號為主要分組鍵（`Stock symbol identity`）：同代號的多個批次彙整為單一持股項目，重複新增時不需重打股票名稱，並允許隨時修正名稱。驗證：單元測試確認 2330 的兩個批次在持股清單中只出現一個項目，且名稱可更新
+- [x] 2.4 輸入代號自動帶入股名（`Stock name lookup from the symbol`）：使用者輸入代號即以證交所每日成交資訊的 `title` 欄解析中文簡稱並存入 `Stock`，櫃買與 Yahoo 依序作為後備（Yahoo 僅為英文名）。名稱查不到時不阻擋儲存，使用者可自行輸入。驗證：單元測試「A TWSE title yields the Chinese short name」得「台積電」、「The TWSE short name is preferred over an English name」、「An OTC code falls through to the exchange that lists it」得「環球晶」、「A resolved name is answered from cache on the second ask」確認第二次不再發出請求、「A lookup that finds nothing does not block saving」確認未知代號回傳 nil 而非拋錯
+- [x] 2.5 名稱與代號並排顯示（`Displaying the name next to the symbol`）：持股摘要列與賣出代號選單皆顯示「代號 名稱」，無名稱時退回只顯示代號。驗證：UI 測試 `testTypedNameIsSavedAndShownNextToTheSymbol` 輸入 2330 與台積電後，持股清單出現「台積電」
 
 ## 3. 批次管理與配股
 

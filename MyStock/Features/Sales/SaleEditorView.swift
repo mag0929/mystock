@@ -43,7 +43,7 @@ struct SaleEditorView: View {
             Picker("股票代號", selection: $viewModel.selectedSymbol) {
                 Text("請選擇").tag("")
                 ForEach(allSymbols, id: \.self) { symbol in
-                    Text(symbol).tag(symbol)
+                    Text(label(for: symbol)).tag(symbol)
                 }
             }
             DatePicker("賣出日期", selection: $viewModel.saleDate, displayedComponents: .date)
@@ -134,6 +134,13 @@ struct SaleEditorView: View {
 
     private var allSymbols: [String] {
         Array(Set(lots.map(\.symbol))).sorted()
+    }
+
+    private func label(for symbol: String) -> String {
+        guard let name = StockStore.name(for: symbol, in: context), !name.isEmpty else {
+            return symbol
+        }
+        return "\(symbol) \(name)"
     }
 
     private func prepare() {
