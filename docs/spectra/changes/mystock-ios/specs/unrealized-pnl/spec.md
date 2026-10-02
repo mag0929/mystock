@@ -58,7 +58,7 @@ The system SHALL compute holding gain or loss as the current price multiplied by
 
 #### Scenario: Holding profit
 - **WHEN** symbol 2330 has 2200 remaining shares, total remaining cost 240000, and a current price of 130
-- **THEN** the system displays a holding gain of 46000 and a holding return of 19.17%
+- **THEN** the system displays a holding gain of 46000 and a holding return of 19.17%, and the average cost 109.09 next to the current price 130
 
 #### Scenario: Holding loss
 - **WHEN** symbol 2330 has 2200 remaining shares, total remaining cost 240000, and a current price of 109.09
@@ -75,6 +75,19 @@ price copied from the displayed average does not reproduce a zero result.
 The system computes the result from the exact remaining cost and quantity,
 not from the rounded average, so the second row is the only case that
 returns 0.
+
+#### Scenario: Average cost and current price shown together
+- **WHEN** symbol 2330 has 2200 remaining shares, total remaining cost 240000, and a current price of 130
+- **THEN** the system displays the average cost 109.09 alongside the current price 130 on the same holding row
+
+#### Scenario: No shares held
+- **WHEN** a holding has no remaining shares
+- **THEN** the system displays the average cost as unavailable rather than as zero
+
+##### Example: a fully sold holding
+- **GIVEN** symbol 2330 bought 1000 shares at 130 and later sold all 1000, leaving 0 remaining shares
+- **WHEN** the system computes the holding's average cost
+- **THEN** the system reports the average cost as unavailable, because dividing the remaining cost by a zero share count has no value
 
 #### Scenario: Zero remaining cost
 - **WHEN** a holding's total remaining cost is 0 and a current price is available
