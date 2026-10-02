@@ -89,7 +89,6 @@ struct LotManagementTests {
             lotDate: Fixtures.makeDate(2026, 1, 10),
             quantity: 2000,
             pricePerShare: 120,
-            totalFees: 0,
             lotType: .buy,
             in: context
         )

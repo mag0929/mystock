@@ -309,7 +309,8 @@ struct LotRowView: View {
             if row.costFieldsAvailable {
                 HStack {
                     Text("單價 \(row.pricePerShareText)")
-                    Text("費用 \(row.feesText)")
+                    Text("手續費 \(row.commissionText)")
+                    Text("交易稅 \(row.transactionTaxText)")
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)

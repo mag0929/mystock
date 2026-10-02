@@ -25,9 +25,15 @@ enum SaleStore {
             saleDate: saleDate,
             quantity: quantity,
             pricePerShare: pricePerShare,
-            commission: FeeSettings.commission(on: gross, rate: rates.commissionRate),
-            transactionTax: FeeSettings.transactionTax(on: gross, rate: rates.transactionTaxRate),
-            securitiesTransactionTaxReference: FeeSettings.securitiesTransactionTaxReference(on: gross)
+            commission: FeeSettings.roundDownToWholeUnit(
+                FeeSettings.commission(on: gross, rate: rates.commissionRate)
+            ),
+            transactionTax: FeeSettings.roundDownToWholeUnit(
+                FeeSettings.transactionTax(on: gross, rate: rates.transactionTaxRate)
+            ),
+            securitiesTransactionTaxReference: FeeSettings.roundDownToWholeUnit(
+                FeeSettings.securitiesTransactionTaxReference(on: gross)
+            )
         )
         context.insert(sale)
 

@@ -63,7 +63,7 @@ struct RealizedProfitTests {
         #expect(result.allocations.count == 1)
         #expect(result.allocations[0].grossResult == 130000)
         #expect(result.allocations[0].lotCostPerShare == Decimal(string: "91.425"))
-        #expect(result.allocations[0].realizedResult == 130000 - 91425 - 575.25)
+        #expect(result.allocations[0].realizedResult == Decimal(38000))
         #expect(result.realizedResult == result.allocations[0].realizedResult)
     }
 

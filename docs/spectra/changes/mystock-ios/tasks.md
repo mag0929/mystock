@@ -32,6 +32,8 @@
 - [x] 5.3 實作持有收益計算（`Holding gain or loss against remaining cost`）：最新價 × 持股總數 − 剩餘總成本，並顯示絕對金額與百分比；剩餘總成本為 0 時百分比顯示不可用但金額照常顯示，無價格時三項皆顯示不可用。驗證：單元測試涵蓋 2200 股／成本 240000／價 130 得 +46000 與 19.17%、價 109.09 得 -4 與 0.00%、成本為 0、無價格四種情境
 - [x] 5.4 實作投資組合層級彙總（`Portfolio level unrealized totals`）：合計各代號的持有收益與單日收益，排除無價格標的並顯示被排除的標的數量。驗證：單元測試涵蓋兩標的合併（+46000 與 -5000 得 +41000）與排除情境（+46000 且顯示排除 1 檔）
 - [x] 5.5 實作手續費與交易稅納入成本基準（`Fee-adjusted cost basis`），費率來自可設定的設定儲存，並以批次建立當時的費率固定寫入該批次。驗證：單元測試 1000 股 × 150 費用 1425、現價 130，成本基準為 151425 而非 150000
+- [x] 5.6 買進批次的費用只計手續費，且小數無條捨去（`A new buy lot's fees are commission only`）；賣出端的手續費與交易稅同樣捨去小數（`Sale fees and taxes`）。驗證：單元測試「Buying 50 shares of 8046 at 1300 costs 92 of fees」得 92 而非 287、「Sale commission and tax are truncated to whole dollars」得 92 與 195
+- [x] 5.7 費用明確分為手續費與交易稅兩項（`Commission and transaction tax are shown as separate figures`），批次與賣出畫面分別顯示。驗證：單元測試「A lot records its commission and its transaction tax separately」與「A lot saved before the split still reports its combined total as commission」
 
 ## 6. 已實現損益
 
@@ -42,7 +44,7 @@
 - [x] 6.5 實作拒絕將賣出配對到配股批次（`Stock allocation lots are never allocated`），並回報該批次為配股批次不可配對。驗證：單元測試嘗試配對配股批次時被拒且錯誤訊息指明配股批次
 - [x] 6.6 實作已實現損益查詢區間（`Realized profit query periods`）：當日、當月、前三月、自訂區間，皆以賣出日期篩選，輸出已實現損益總額、筆數、扣除的手續費與稅。驗證：單元測試涵蓋當日 2 筆得 3000、2026-03-10 查前三月納入 1/10・2/15・3/05 三筆、自訂 2026-02-01 至 2026-02-28 僅納入 2/15、空區間回報 0 筆 0 額
 - [x] 6.7 實作依代號分組與逐筆檢視（`Realized profit by symbol and by sale`），每筆顯示賣出日期、代號、股數、賣價、所配對的批次與該筆已實現損益。驗證：單元測試查 2330 於 2026-03 區間得單一分組且總額等於兩筆之和，並排除其他代號
-- [x] 6.8 實作賣出手續費與稅額記錄（`Fee and tax handling on sales`）：手續費依設定費率、交易稅 0.3% 從已實現損益扣除，證交稅 0.4% 僅作為參考值記錄而不扣除；費率於賣出當時寫入，之後改設定不回溯。驗證：單元測試 1000 股賣 130 記錄手續費 185.25、交易稅 390、證交稅參考值 520，且費率由 0.1425% 改為 0.15% 後舊賣出仍用 0.1425% 計算
+- [x] 6.8 實作賣出手續費與稅額記錄（`Fee and tax handling on sales`）：手續費依設定費率、交易稅 0.3% 從已實現損益扣除，證交稅 0.4% 僅作為參考值記錄而不扣除；費率於賣出當時寫入，之後改設定不回溯。驗證：單元測試 1000 股賣 130 記錄手續費 185、交易稅 390、證交稅參考值 520，且費率由 0.1425% 改為 0.15% 後舊賣出仍用 0.1425% 計算
 
 ## 7. 整合
 

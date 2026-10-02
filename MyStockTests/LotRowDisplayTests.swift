@@ -22,7 +22,8 @@ struct LotRowDisplayTests {
         #expect(row.remainingText == "200")
         #expect(row.costFieldsAvailable == false)
         #expect(row.pricePerShareText == "—")
-        #expect(row.feesText == "—")
+        #expect(row.commissionText == "—")
+        #expect(row.transactionTaxText == "—")
     }
 
     @Test("Displaying a buy lot shows its costs")
@@ -40,7 +41,8 @@ struct LotRowDisplayTests {
         #expect(row.typeText == "買進")
         #expect(row.costFieldsAvailable == true)
         #expect(row.pricePerShareText == "150.00")
-        #expect(row.feesText == "1,425")
+        #expect(row.commissionText == "1,425")
+        #expect(row.transactionTaxText == "0")
         #expect(row.remainingText == "1,000")
     }
 
@@ -54,7 +56,8 @@ struct LotRowDisplayTests {
             totalFees: 92
         )
 
-        #expect(LotRowViewModel(lot: lot).feesText == "92")
+        #expect(LotRowViewModel(lot: lot).commissionText == "92")
+        #expect(LotRowViewModel(lot: lot).transactionTaxText == "0")
     }
 
     @Test("A fee with a fractional part keeps its decimals")
@@ -67,6 +70,6 @@ struct LotRowDisplayTests {
             totalFees: Decimal(string: "213.75") ?? .zero
         )
 
-        #expect(LotRowViewModel(lot: lot).feesText == "213.75")
+        #expect(LotRowViewModel(lot: lot).commissionText == "213.75")
     }
 }

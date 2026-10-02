@@ -5,10 +5,11 @@ struct LotRowViewModel: Identifiable {
     let lotDate: Date
     let quantityText: String
     let pricePerShareText: String
-    let feesText: String
     let remainingText: String
     let typeText: String
     let costFieldsAvailable: Bool
+    let commissionText: String
+    let transactionTaxText: String
 
     init(lot: Lot) {
         id = lot.id
@@ -18,12 +19,15 @@ struct LotRowViewModel: Identifiable {
         let isAllocation = lot.lotType == .stockAllocation
         typeText = isAllocation ? "配股" : "買進"
         costFieldsAvailable = !isAllocation
+        let fees = lot.feeBreakdown
         if isAllocation {
             pricePerShareText = "—"
-            feesText = "—"
+            commissionText = "—"
+            transactionTaxText = "—"
         } else {
             pricePerShareText = Format.decimal(lot.pricePerShare)
-            feesText = Format.money(lot.totalFees)
+            commissionText = Format.money(fees.commission)
+            transactionTaxText = Format.money(fees.transactionTax)
         }
     }
 }

@@ -56,7 +56,8 @@ struct LotEditingTests {
     @Test("Editing a lot changes its recorded figures")
     func editingChangesFigures() throws {
         let context = try makeContext()
-        let lot = buyLot(in: context)
+        let lot = buyLot(in: context, quantity: 1000, price: 150, fees: 213)
+        let feesBefore = lot.feeBreakdown
 
         try LotStore.update(
             lot,
@@ -64,7 +65,6 @@ struct LotEditingTests {
             lotDate: Fixtures.makeDate(2026, 2, 1),
             quantity: 1500,
             pricePerShare: 120,
-            totalFees: 2000,
             lotType: .buy,
             in: context
         )
@@ -73,8 +73,8 @@ struct LotEditingTests {
         #expect(lot.lotDate == Fixtures.makeDate(2026, 2, 1))
         #expect(lot.quantity == 1500)
         #expect(lot.pricePerShare == 120)
-        #expect(lot.totalFees == 2000)
         #expect(lot.remainingQuantity == 1500)
+        #expect(lot.feeBreakdown == feesBefore, "編輯不得更動建立當時記錄的費用")
     }
 
     @Test("Editing keeps the shares already sold out of the remaining count")
@@ -89,7 +89,6 @@ struct LotEditingTests {
             lotDate: lot.lotDate,
             quantity: 800,
             pricePerShare: 150,
-            totalFees: 0,
             lotType: .buy,
             in: context
         )
@@ -109,7 +108,6 @@ struct LotEditingTests {
             lotDate: lot.lotDate,
             quantity: 5000,
             pricePerShare: 400,
-            totalFees: 1425,
             lotType: .buy,
             in: context
         )
@@ -172,7 +170,6 @@ struct LotEditingTests {
                 lotDate: lot.lotDate,
                 quantity: 300,
                 pricePerShare: 150,
-                totalFees: 0,
                 lotType: .buy,
                 in: context
             )
@@ -197,7 +194,6 @@ struct LotEditingTests {
             lotDate: lot.lotDate,
             quantity: 600,
             pricePerShare: 150,
-            totalFees: 0,
             lotType: .buy,
             in: context
         )
@@ -262,7 +258,6 @@ struct LotEditingTests {
             lotDate: Fixtures.makeDate(2026, 4, 2),
             quantity: 300,
             pricePerShare: 0,
-            totalFees: 0,
             lotType: .stockAllocation,
             in: context
         )

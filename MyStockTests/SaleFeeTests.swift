@@ -46,10 +46,31 @@ struct SaleFeeTests {
         let sale = try recordSale(in: store.context, rates: standardRates)
 
         #expect(sale.grossProceeds == 130000)
-        #expect(sale.commission == Decimal(string: "185.25"))
+        #expect(sale.commission == 185, "130000 × 0.001425 = 185.25，無條捨去為 185")
         #expect(sale.transactionTax == 390)
         #expect(sale.securitiesTransactionTaxReference == 520)
-        #expect(sale.totalDeductions == Decimal(string: "575.25"))
+        #expect(sale.totalDeductions == 575)
+    }
+
+    @Test("Sale commission and tax are truncated to whole dollars")
+    func saleFeesTruncateToWholeDollars() throws {
+        let store = try setUp()
+        let sale = try recordSale(
+            in: store.context,
+            rates: standardRates,
+            quantity: 50,
+            price: 1300
+        )
+
+        #expect(sale.grossProceeds == 65000)
+        #expect(sale.commission == 92, "65000 × 0.001425 = 92.625，無條捨去為 92")
+        #expect(sale.transactionTax == 195, "65000 × 0.003 = 195")
+        #expect(sale.totalDeductions == 287)
+        // Bought at 100, so cost is 5000: 65000 − 5000 − 287.
+        #expect(RealizedPnLCalculator.result(
+            for: sale,
+            allocations: try SaleStore.allocations(for: sale, in: store.context)
+        ).realizedResult == Decimal(59713))
     }
 
     @Test("Commission and transaction tax are deducted from realized profit")
@@ -62,7 +83,7 @@ struct SaleFeeTests {
             allocations: try SaleStore.allocations(for: sale, in: context)
         )
 
-        #expect(result.realizedResult == Decimal(30000) - Decimal(string: "575.25")!)
+        #expect(result.realizedResult == Decimal(30000) - 575)
     }
 
     @Test("Securities transaction tax is recorded but not deducted")
@@ -92,7 +113,7 @@ struct SaleFeeTests {
         let laterSale = try recordSale(in: context, rates: ratesAfterChange, price: 200)
 
         #expect(sale.commission == commissionBefore)
-        #expect(sale.commission == Decimal(string: "185.25"))
+        #expect(sale.commission == 185, "130000 × 0.001425 = 185.25，無條捨去為 185")
         #expect(laterSale.commission == 300)
         #expect(ratesAfterChange.commissionRate == Decimal(string: "0.0015"))
     }

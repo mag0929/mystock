@@ -76,8 +76,8 @@ The remaining market value term is required because a sale removes shares withou
 
 | Term | Value |
 | --- | --- |
-| Realized profit, net of sale deductions | +39424.75 |
-| Sale deductions | 575.25 |
+| Realized profit, net of sale deductions | +39425 |
+| Sale deductions | 575 |
 | Unrealized result on the 1000 remaining shares, cost basis 150000 at 130 | −20000 |
 | Left side: realized plus deductions plus unrealized | 20000 |
 | Remaining market value, 1000 shares at 130 | 130000 |
@@ -85,7 +85,7 @@ The remaining market value term is required because a sale removes shares withou
 | Acquisition cost, both lots | 240000 |
 | Right side: remaining market value plus proceeds − acquisition cost | 20000 |
 
-Omit the sale deductions row and the left side reads 19424.75 while the
+Omit the sale deductions row and the left side reads 19425 while the
 right side stays 20000, which is why the deductions term appears in the
 identity rather than being folded into the realized profit.
 
@@ -128,11 +128,17 @@ The system SHALL allow the user to view the realized profit result grouped by st
 - **THEN** the system reports one group for 2330 whose total equals the sum of those two sales' realized profits, and excludes any other symbol's sales
 
 ### Requirement: Fee and tax handling on sales
-The system SHALL record, for every sale, the commission and the Taiwan stock transaction tax at 0.3 percent of the sale value, and SHALL deduct both from the realized profit. The system SHALL read the commission rate from the settings store and SHALL apply the rate in effect when the sale was recorded. The system SHALL also record the 0.4 percent securities transaction tax as a reference figure for the sale, without deducting it from realized profit, because Taiwan assesses that tax at annual settlement rather than per trade.
+The system SHALL record, for every sale, the commission and the Taiwan stock transaction tax at 0.3 percent of the sale value, and SHALL deduct both from the realized profit. The system SHALL read the commission rate from the settings store and SHALL apply the rate in effect when the sale was recorded. The system SHALL discard the fractional dollar of every fee and tax it records, because brokerages charge whole dollars. The system SHALL also record the 0.4 percent securities transaction tax as a reference figure for the sale, without deducting it from realized profit, because Taiwan assesses that tax at annual settlement rather than per trade.
 
 #### Scenario: Sale fees and taxes
 - **WHEN** the user records a sale of 1000 shares at 130 with a commission rate of 0.1425 percent
-- **THEN** the system records commission of 185.25, transaction tax of 390, a reference securities transaction tax figure of 520, and deducts commission and transaction tax from realized profit
+- **THEN** the system records commission of 185, transaction tax of 390, a reference securities transaction tax figure of 520, and deducts commission and transaction tax from realized profit
+
+##### Example: the fractional dollar is discarded
+| Quantity | Price per share | Commission before truncation | Commission recorded | Transaction tax recorded |
+| --- | --- | --- | --- | --- |
+| 1000 | 130 | 185.25 | 185 | 390 |
+| 50 | 1300 | 92.625 | 92 | 195 |
 
 #### Scenario: Commission rate change does not alter past sales
 - **WHEN** a sale was recorded with a commission rate of 0.1425 percent and the user later changes the rate to 0.15 percent

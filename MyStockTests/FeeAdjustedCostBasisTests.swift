@@ -60,6 +60,40 @@ struct FeeAdjustedCostBasisTests {
         #expect(FeeSettings.roundDownToWholeUnit(93) == 93)
     }
 
+    @Test("A lot records its commission and its transaction tax separately")
+    func lotKeepsFeesSeparated() throws {
+        let context = try makeContext()
+        let rates = try FeeSettingsStore.currentRates(in: context)
+        let lot = LotFeeSnapshot.makeBuyLot(
+            symbol: "8046",
+            lotDate: Fixtures.makeDate(2026, 3, 2),
+            quantity: 50,
+            pricePerShare: 1300,
+            rates: rates
+        )
+
+        #expect(lot.commission == 92)
+        #expect(lot.transactionTax == 0)
+        #expect(lot.totalFees == 92)
+        #expect(lot.feeBreakdown == LotFeeBreakdown(commission: 92, transactionTax: 0))
+        #expect(lot.totalCost == 65092)
+    }
+
+    @Test("A lot saved before the split still reports its combined total as commission")
+    func legacyLotReadsBackAsCommission() {
+        let lot = Lot(
+            symbol: "2330",
+            lotDate: Fixtures.makeDate(2026, 1, 10),
+            quantity: 1000,
+            pricePerShare: 150,
+            totalFees: 1425
+        )
+
+        #expect(lot.commission == 1425)
+        #expect(lot.feeBreakdown == LotFeeBreakdown(commission: 1425, transactionTax: 0))
+        #expect(lot.totalCost == 151425)
+    }
+
     @Test("Fees included in holding cost")
     func feesIncludedInHoldingCost() throws {
         let rates = FeeRates(

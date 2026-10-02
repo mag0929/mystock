@@ -58,6 +58,9 @@ struct RealizedProfitView: View {
                                 Text("賣出 \(sale.quantity) 股 @ \(Format.decimal(sale.pricePerShare))")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
+                                Text("手續費 \(Format.money(sale.commission))・交易稅 \(Format.money(sale.transactionTax))")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                                 ForEach(sale.allocations, id: \.lotDate) { allocation in
                                     Text("配對 \(Format.date(allocation.lotDate)) \(allocation.quantity) 股 → \(Format.signedDecimal(allocation.realizedResult))")
                                         .font(.caption)

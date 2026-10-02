@@ -191,11 +191,11 @@ struct RealizedQueryTests {
             now: Fixtures.makeDate(2026, 3, 5)
         )
 
-        #expect(result.commissionTotal == Decimal(string: "185.25"))
+        #expect(result.commissionTotal == 185)
         #expect(result.transactionTaxTotal == 390)
         #expect(result.securitiesTransactionTaxReferenceTotal == 520)
-        #expect(result.totalDeductions == Decimal(string: "575.25"))
-        #expect(result.realizedTotal == Decimal(30000) - Decimal(string: "575.25")!)
+        #expect(result.totalDeductions == 575)
+        #expect(result.realizedTotal == Decimal(30000) - 575)
     }
 
     @Test("Grouping by symbol")

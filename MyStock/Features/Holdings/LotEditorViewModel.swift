@@ -15,11 +15,9 @@ final class LotEditorViewModel {
     private(set) var lot: Lot?
 
     private var editingLotID: UUID?
-    private let originalTotalFees: Decimal?
 
     init(lot: Lot? = nil) {
         editingLotID = lot?.id
-        originalTotalFees = lot?.totalFees
         if let lot {
             symbol = lot.symbol
             lotDate = lot.lotDate
@@ -32,13 +30,6 @@ final class LotEditorViewModel {
     }
 
     var isEditing: Bool { editingLotID != nil }
-
-    /// Editing must not restate the fees: the rate was snapshotted when the lot was
-    /// created, and the settings screen promises later rate changes never apply
-    /// backwards to existing lots.
-    private var feesToWrite: Decimal {
-        originalTotalFees ?? 0
-    }
 
     func existingLot(in context: ModelContext) -> Lot? {
         guard let editingLotID else { return nil }
@@ -114,7 +105,6 @@ final class LotEditorViewModel {
                 lotDate: lotDate,
                 quantity: quantity,
                 pricePerShare: isStockAllocation ? 0 : (Decimal(string: pricePerShareText) ?? 0),
-                totalFees: feesToWrite,
                 lotType: isStockAllocation ? .stockAllocation : .buy,
                 in: context
             )

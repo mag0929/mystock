@@ -26,6 +26,15 @@ The system SHALL represent every purchase as a separate lot. Each lot MUST recor
 - **WHEN** the user saves a buy lot for symbol 8046 with quantity 50 at 1300
 - **THEN** the lot records fees of 92, not 287, and its total cost is 65092
 
+#### Scenario: Commission and transaction tax are shown as separate figures
+- **WHEN** the system displays a lot's fees
+- **THEN** the system shows the commission and the transaction tax as two distinct amounts rather than a single combined total, and a lot recorded before this split shows its combined total as the commission
+
+##### Example: reading a lot recorded before the split
+- **GIVEN** a lot saved with a single combined fee of 1425 and no separate transaction tax
+- **WHEN** the system reads that lot's fees
+- **THEN** it reports a commission of 1425 and a transaction tax of 0
+
 #### Scenario: Lot cost includes fees
 - **WHEN** the system computes a lot's total cost
 - **THEN** the system multiplies quantity by price per share and adds the recorded fees

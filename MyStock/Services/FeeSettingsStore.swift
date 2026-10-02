@@ -88,7 +88,8 @@ enum LotFeeSnapshot {
             lotDate: lotDate,
             quantity: quantity,
             pricePerShare: pricePerShare,
-            totalFees: fees.total,
+            commission: fees.commission,
+            transactionTax: fees.transactionTax,
             lotType: .buy
         )
     }

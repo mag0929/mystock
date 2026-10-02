@@ -33,13 +33,15 @@ enum LotStore {
         try context.save()
     }
 
+    /// There is no `totalFees` parameter on purpose. The commission and the
+    /// transaction tax were fixed when the lot was created, and restating them here
+    /// would let an edit silently apply a later rate to an older lot.
     static func update(
         _ lot: Lot,
         symbol: String,
         lotDate: Date,
         quantity: Int,
         pricePerShare: Decimal,
-        totalFees: Decimal,
         lotType: LotType,
         in context: ModelContext
     ) throws {
@@ -54,7 +56,6 @@ enum LotStore {
         lot.lotDate = lotDate
         lot.quantity = quantity
         lot.pricePerShare = pricePerShare
-        lot.totalFees = totalFees
         lot.lotType = lotType
         lot.remainingQuantity = quantity - soldQuantity
         try context.save()
