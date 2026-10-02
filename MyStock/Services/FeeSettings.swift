@@ -9,8 +9,12 @@ enum FeeSettings {
         grossValue * rate
     }
 
+    static func transactionTax(on grossValue: Decimal, rate: Decimal) -> Decimal {
+        grossValue * rate
+    }
+
     static func transactionTax(on grossValue: Decimal) -> Decimal {
-        grossValue * transactionTaxRate
+        transactionTax(on: grossValue, rate: transactionTaxRate)
     }
 
     static func securitiesTransactionTaxReference(on grossValue: Decimal) -> Decimal {

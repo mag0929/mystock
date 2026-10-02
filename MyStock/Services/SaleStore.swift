@@ -26,7 +26,7 @@ enum SaleStore {
             quantity: quantity,
             pricePerShare: pricePerShare,
             commission: FeeSettings.commission(on: gross, rate: rates.commissionRate),
-            transactionTax: FeeSettings.transactionTax(on: gross),
+            transactionTax: FeeSettings.transactionTax(on: gross, rate: rates.transactionTaxRate),
             securitiesTransactionTaxReference: FeeSettings.securitiesTransactionTaxReference(on: gross)
         )
         context.insert(sale)
