@@ -99,12 +99,3 @@ struct HoldingAggregateTests {
         #expect(HoldingCalculator.saleAllocationCandidates(from: [sold], symbol: "2330").isEmpty)
     }
 }
-
-extension Decimal {
-    func rounded(scale: Int) -> Decimal {
-        var input = self
-        var output = Decimal()
-        NSDecimalRound(&output, &input, scale, .plain)
-        return output
-    }
-}
