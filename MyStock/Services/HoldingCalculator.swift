@@ -2,9 +2,11 @@ import Foundation
 import SwiftData
 
 enum HoldingCalculator {
-    struct Holding {
+    struct Holding: Identifiable {
         let symbol: String
         let lots: [Lot]
+
+        var id: String { symbol }
 
         var totalQuantity: Int {
             lots.reduce(0) { $0 + $1.remainingQuantity }

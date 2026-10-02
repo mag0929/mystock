@@ -1,6 +1,6 @@
 import Foundation
 
-enum RealizedQueryPeriod: Equatable {
+enum RealizedQueryPeriod: Hashable {
     case today
     case currentMonth
     case previousThreeMonths

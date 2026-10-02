@@ -1,6 +1,18 @@
 import Foundation
 import SwiftUI
 
+struct PortfolioSummary {
+    let priceChangeText: String?
+    let priceChangeColor: Color
+    let singleDayText: String?
+    let singleDayColor: Color
+    let holdingText: String?
+    let holdingColor: Color
+    let excludedSymbolCount: Int
+
+    var holdingResultIsAvailable: Bool { holdingText != nil }
+}
+
 @MainActor
 @Observable
 final class HoldingsViewModel {
@@ -18,10 +30,39 @@ final class HoldingsViewModel {
 
     var quoteUnavailableSymbols: [String] {
         holdings
-            .filter { ($0.lots.map(\.symbol).first ?? "") != "" }
             .map(\.symbol)
             .filter { quotes[$0]?.isAvailable != true }
             .sorted()
+    }
+
+    var metrics: [String: HoldingMetrics] {
+        Dictionary(
+            uniqueKeysWithValues: UnrealizedPnLCalculator
+                .metrics(for: holdings, quotes: quotes)
+                .map { ($0.symbol, $0) }
+        )
+    }
+
+    func metrics(for holding: HoldingCalculator.Holding) -> HoldingMetrics {
+        UnrealizedPnLCalculator.metrics(for: holding, quote: quotes[holding.symbol])
+    }
+
+    var portfolioSummary: PortfolioSummary? {
+        guard !holdings.isEmpty else { return nil }
+        let allMetrics = UnrealizedPnLCalculator.metrics(for: holdings, quotes: quotes)
+        let totals = UnrealizedPnLCalculator.totals(from: allMetrics)
+        let pricedMetrics = allMetrics.filter(\.isAvailable)
+        let weightedChange = weightedChangePercentage(from: pricedMetrics)
+
+        return PortfolioSummary(
+            priceChangeText: weightedChange.map { Format.percent($0) },
+            priceChangeColor: color(for: weightedChange),
+            singleDayText: Format.signedDecimal(totals.singleDayResult),
+            singleDayColor: color(for: totals.singleDayResult),
+            holdingText: Format.signedDecimal(totals.holdingResult),
+            holdingColor: color(for: totals.holdingResult),
+            excludedSymbolCount: totals.excludedSymbolCount
+        )
     }
 
     func load(lots: [Lot]) {
@@ -38,6 +79,25 @@ final class HoldingsViewModel {
         await refreshQuotes()
     }
 
+    func dismissLoadError() {
+        loadError = nil
+    }
+
+    private func weightedChangePercentage(from metrics: [HoldingMetrics]) -> Decimal? {
+        var marketValue = Decimal.zero
+        var previousValue = Decimal.zero
+        for metric in metrics {
+            guard let current = metric.currentPrice else { continue }
+            let quantity = Decimal(metric.totalQuantity)
+            marketValue += current * quantity
+            if let change = metric.priceChangePercentage {
+                previousValue += (current / (change + 1)) * quantity
+            }
+        }
+        guard previousValue != 0 else { return nil }
+        return (marketValue - previousValue) / previousValue
+    }
+
     private func refreshQuotes() async {
         let symbols = holdings.map(\.symbol)
         guard !symbols.isEmpty else {
@@ -48,6 +108,13 @@ final class HoldingsViewModel {
         defer { isRefreshing = false }
         let fetched = await quoteService.quotes(for: symbols)
         quotes = fetched
-        loadError = fetched.values.contains { $0.isAvailable } ? nil : "無法取得報價"
+        loadError = fetched.values.contains(where: \.isAvailable) ? nil : "無法取得報價"
+    }
+
+    private func color(for value: Decimal?) -> Color {
+        guard let value else { return .secondary }
+        if value > 0 { return .red }
+        if value < 0 { return .green }
+        return .primary
     }
 }

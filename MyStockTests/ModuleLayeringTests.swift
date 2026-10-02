@@ -6,6 +6,6 @@ import Testing
 struct ModuleLayeringTests {
     @Test("The features layer is reachable from the test target")
     func featuresLayerReachable() {
-        #expect(HoldingsView.self != nil)
+        #expect(HoldingsListView.self != nil)
     }
 }
