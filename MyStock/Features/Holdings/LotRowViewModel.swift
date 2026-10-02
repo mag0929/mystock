@@ -23,7 +23,7 @@ struct LotRowViewModel: Identifiable {
             feesText = "—"
         } else {
             pricePerShareText = Format.decimal(lot.pricePerShare)
-            feesText = Format.decimal(lot.totalFees)
+            feesText = Format.money(lot.totalFees)
         }
     }
 }
@@ -50,6 +50,14 @@ enum Format {
         let scaled = value * 100
         let text = decimal(scaled, fractionDigits: fractionDigits)
         return value < 0 ? "\(text)%" : "+\(text)%"
+    }
+
+    /// Brokerage fees land on whole dollars, so showing "92.00" only adds noise.
+    static func money(_ value: Decimal) -> String {
+        var input = value
+        var whole = Decimal()
+        NSDecimalRound(&whole, &input, 0, .down)
+        return whole == value ? decimal(whole, fractionDigits: 0) : decimal(value)
     }
 
     static func date(_ date: Date) -> String {

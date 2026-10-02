@@ -40,7 +40,33 @@ struct LotRowDisplayTests {
         #expect(row.typeText == "買進")
         #expect(row.costFieldsAvailable == true)
         #expect(row.pricePerShareText == "150.00")
-        #expect(row.feesText == "1,425.00")
+        #expect(row.feesText == "1,425")
         #expect(row.remainingText == "1,000")
+    }
+
+    @Test("A whole dollar fee shows without decimals")
+    func wholeDollarFeeHasNoDecimals() {
+        let lot = Lot(
+            symbol: "8046",
+            lotDate: Fixtures.makeDate(2026, 3, 2),
+            quantity: 50,
+            pricePerShare: 1300,
+            totalFees: 92
+        )
+
+        #expect(LotRowViewModel(lot: lot).feesText == "92")
+    }
+
+    @Test("A fee with a fractional part keeps its decimals")
+    func fractionalFeeKeepsDecimals() {
+        let lot = Lot(
+            symbol: "2330",
+            lotDate: Fixtures.makeDate(2026, 1, 10),
+            quantity: 1000,
+            pricePerShare: 150,
+            totalFees: Decimal(string: "213.75") ?? .zero
+        )
+
+        #expect(LotRowViewModel(lot: lot).feesText == "213.75")
     }
 }

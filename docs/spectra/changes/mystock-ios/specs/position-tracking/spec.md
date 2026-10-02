@@ -11,6 +11,21 @@ The system SHALL represent every purchase as a separate lot. Each lot MUST recor
 - **WHEN** the user saves a new buy lot for symbol 2330 with quantity 1000, price per share 150, date 2026-01-10, and fees 1425
 - **THEN** the system stores a lot with type `buy`, remaining quantity 1000, and total cost 151425
 
+#### Scenario: A new buy lot's fees are commission only
+- **WHEN** the system derives the fees for a new buy lot
+- **THEN** the system records commission equal to the purchase value multiplied by the configured commission rate with the fraction discarded, and records no transaction tax, because Taiwan assesses the transaction tax and the securities transaction tax when shares are sold rather than bought
+
+##### Example: fees on a purchase
+| Symbol | Quantity | Price per share | Commission rate | Commission before truncation | Fees recorded |
+| --- | --- | --- | --- | --- | --- |
+| 8046 | 50 | 1300 | 0.1425% | 92.625 | 92 |
+| 2330 | 1000 | 150 | 0.1425% | 213.75 | 213 |
+
+##### Example: the sale tax rate does not reach a purchase
+- **GIVEN** the transaction tax rate is 0.3 percent
+- **WHEN** the user saves a buy lot for symbol 8046 with quantity 50 at 1300
+- **THEN** the lot records fees of 92, not 287, and its total cost is 65092
+
 #### Scenario: Lot cost includes fees
 - **WHEN** the system computes a lot's total cost
 - **THEN** the system multiplies quantity by price per share and adds the recorded fees

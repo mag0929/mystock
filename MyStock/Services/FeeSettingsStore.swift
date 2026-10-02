@@ -64,9 +64,15 @@ enum LotFeeSnapshot {
         rates: FeeRates
     ) -> (commission: Decimal, transactionTax: Decimal, total: Decimal) {
         let gross = Decimal(quantity) * pricePerShare
-        let commission = FeeSettings.commission(on: gross, rate: rates.commissionRate)
-        let transactionTax = gross * rates.transactionTaxRate
-        return (commission, transactionTax, commission + transactionTax)
+        let commission = FeeSettings.buyCommission(
+            quantity: quantity,
+            pricePerShare: pricePerShare,
+            rate: rates.commissionRate
+        )
+        // Taiwan charges the transaction tax and the securities transaction tax when
+        // shares are sold. A purchase owes commission only, so a lot's cost basis
+        // must not carry the 0.3 percent sale tax.
+        return (commission, .zero, commission)
     }
 
     static func makeBuyLot(

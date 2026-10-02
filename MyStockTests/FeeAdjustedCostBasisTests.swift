@@ -11,16 +11,53 @@ struct FeeAdjustedCostBasisTests {
         return ModelContext(container)
     }
 
-    @Test("Default rates produce 1425 of fees for 1000 shares at 150")
-    func defaultRatesProduceExpectedFees() throws {
+    @Test("Buying 50 shares of 8046 at 1300 costs 92 of fees")
+    func buyCommissionOnlyFor8046() throws {
+        let context = try makeContext()
+        let rates = try FeeSettingsStore.currentRates(in: context)
+
+        let fees = LotFeeSnapshot.buyFees(quantity: 50, pricePerShare: 1300, rates: rates)
+
+        #expect(fees.commission == 92, "1300 × 50 × 0.001425 = 92.625，無條捨去為 92")
+        #expect(fees.transactionTax == 0, "台股交易稅只在賣出時課徵，買進不計")
+        #expect(fees.total == 92)
+    }
+
+    @Test("Buying 1000 shares at 150 costs commission only")
+    func buyCarriesCommissionOnly() throws {
         let context = try makeContext()
         let rates = try FeeSettingsStore.currentRates(in: context)
 
         let fees = LotFeeSnapshot.buyFees(quantity: 1000, pricePerShare: 150, rates: rates)
 
-        #expect(fees.commission == Decimal(string: "213.75"))
-        #expect(fees.transactionTax == 450)
-        #expect(fees.total == Decimal(string: "663.75"))
+        #expect(fees.commission == 213, "150000 × 0.001425 = 213.75，無條捨去為 213")
+        #expect(fees.transactionTax == 0)
+        #expect(fees.total == Decimal(213))
+    }
+
+    @Test("The buy commission does not move when only the transaction tax changes")
+    func buyIgnoresTransactionTaxRate() throws {
+        let before = FeeRates(
+            commissionRate: Decimal(string: "0.001425") ?? .zero,
+            transactionTaxRate: Decimal(string: "0.003") ?? .zero
+        )
+        let after = FeeRates(
+            commissionRate: Decimal(string: "0.001425") ?? .zero,
+            transactionTaxRate: Decimal(string: "0.005") ?? .zero
+        )
+
+        #expect(
+            LotFeeSnapshot.buyFees(quantity: 50, pricePerShare: 1300, rates: before).total
+                == LotFeeSnapshot.buyFees(quantity: 50, pricePerShare: 1300, rates: after).total
+        )
+    }
+
+    @Test("The commission fraction is discarded rather than rounded up")
+    func commissionTruncatesRatherThanRounds() throws {
+        #expect(FeeSettings.roundDownToWholeUnit(Decimal(string: "92.625")!) == 92)
+        #expect(FeeSettings.roundDownToWholeUnit(Decimal(string: "92.999")!) == 92)
+        #expect(FeeSettings.roundDownToWholeUnit(Decimal(string: "92.001")!) == 92)
+        #expect(FeeSettings.roundDownToWholeUnit(93) == 93)
     }
 
     @Test("Fees included in holding cost")
@@ -37,8 +74,8 @@ struct FeeAdjustedCostBasisTests {
             rates: rates
         )
 
-        #expect(lot.totalFees == Decimal(string: "592.5"))
-        #expect(lot.totalCost == Decimal(string: "150592.5"))
+        #expect(lot.totalFees == Decimal(142), "150000 × 0.00095 = 142.5，無條捨去為 142")
+        #expect(lot.totalCost == Decimal(150142))
     }
 
     @Test("Cost basis of 151425 from 1425 of fees")
