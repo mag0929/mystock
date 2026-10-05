@@ -165,6 +165,48 @@ final class HoldingsScreenUITests: XCTestCase {
         )
     }
 
+    func testALotRowShowsPurchaseAndCurrentFigures() {
+        addLot(symbol: "2330", quantity: "200", price: "141.5")
+        expandLotsUnderSymbol("2330")
+
+        // A symbol and a date do not tell the user what they paid, so the lot
+        // row has to carry the purchase figures. These come from the lot itself,
+        // so they are deterministic and safe to assert here.
+        XCTAssertTrue(
+            app.staticTexts.matching(
+                NSPredicate(format: "label BEGINSWITH '2330'")
+            ).count >= 2,
+            "批次列本身應顯示股號，而不是只靠上方的持股標題"
+        )
+        XCTAssertTrue(
+            app.staticTexts.matching(
+                NSPredicate(format: "label CONTAINS '成交價' AND label CONTAINS '141.50'")
+            ).firstMatch.waitForExistence(timeout: 5),
+            "批次列應顯示原始成交價 141.50"
+        )
+        XCTAssertTrue(
+            app.staticTexts.matching(
+                NSPredicate(format: "label CONTAINS '持有成本' AND label CONTAINS '28,340'")
+            ).firstMatch.waitForExistence(timeout: 5),
+            "批次列應顯示含手續費的持有成本 28,340"
+        )
+
+        // The current figures depend on a live quote, which the UI tests do not
+        // stub, so assert only that the row offers them. Their arithmetic is
+        // covered by the unit tests.
+        // The current figures depend on a live quote the UI tests do not stub,
+        // so assert that each column is present without pinning its value. The
+        // arithmetic behind them is covered by the unit tests.
+        for column in ["時價", "市價", "損益", "報酬率"] {
+            XCTAssertTrue(
+                app.staticTexts.matching(
+                    NSPredicate(format: "label BEGINSWITH %@", column)
+                ).count >= 1,
+                "批次列應顯示「\(column)」，否則買進與現價無法並排比較"
+            )
+        }
+    }
+
     func testALotCanBeDeleted() {
         addLot(symbol: "2330", quantity: "1000", price: "150")
         expandLotsUnderSymbol("2330")

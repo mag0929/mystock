@@ -1,7 +1,11 @@
 import Foundation
 
+/// The per-lot row the user asked for: the purchase figures next to what the
+/// position is worth now, so a single row answers "am I up on this lot".
 struct LotRowViewModel: Identifiable {
     let id: UUID
+    let symbol: String
+    let displayName: String?
     let lotDate: Date
     let quantityText: String
     let pricePerShareText: String
@@ -9,10 +13,17 @@ struct LotRowViewModel: Identifiable {
     let typeText: String
     let costFieldsAvailable: Bool
     let commissionText: String
-    let transactionTaxText: String
+    let currentPriceText: String
+    let remainingCostText: String
+    let marketValueText: String
+    let resultText: String
+    let returnText: String
+    let resultColorValue: Decimal?
 
-    init(lot: Lot) {
+    init(lot: Lot, displayName: String? = nil, metrics: LotMetrics? = nil) {
         id = lot.id
+        symbol = lot.symbol
+        self.displayName = displayName
         lotDate = lot.lotDate
         quantityText = Format.decimal(Decimal(lot.quantity), fractionDigits: 0)
         remainingText = Format.decimal(Decimal(lot.remainingQuantity), fractionDigits: 0)
@@ -23,12 +34,77 @@ struct LotRowViewModel: Identifiable {
         if isAllocation {
             pricePerShareText = "—"
             commissionText = "—"
-            transactionTaxText = "—"
         } else {
             pricePerShareText = Format.decimal(lot.pricePerShare)
             commissionText = Format.money(fees.commission)
-            transactionTaxText = Format.money(fees.transactionTax)
         }
+
+        if let metrics {
+            currentPriceText = metrics.currentPrice.map { Format.decimal($0) } ?? "不可用"
+            remainingCostText = Format.money(metrics.remainingCost)
+            marketValueText = metrics.marketValue.map { Format.money($0) } ?? "不可用"
+            resultText = metrics.result.map { Format.signedDecimal($0) } ?? "不可用"
+            returnText = metrics.returnPercentage.map { Format.percent($0) } ?? "不可用"
+            resultColorValue = metrics.result
+        } else {
+            currentPriceText = "不可用"
+            remainingCostText = "不可用"
+            marketValueText = "不可用"
+            resultText = "不可用"
+            returnText = "不可用"
+            resultColorValue = nil
+        }
+    }
+}
+
+struct LotMetrics: Equatable {
+    let currentPrice: Decimal?
+    let marketValue: Decimal?
+    let remainingCost: Decimal
+    let estimatedSaleFees: Decimal
+    let result: Decimal?
+    let returnPercentage: Decimal?
+}
+
+enum LotPnLCalculator {
+    /// Computed from the lot's remaining shares and remaining cost, because the
+    /// shares already sold are reported as realized profit instead. A lot sold
+    /// in full therefore reports no unrealized result rather than counting its
+    /// profit twice.
+    static func metrics(
+        for lot: Lot,
+        quote: Quote?,
+        rates: FeeRates = FeeRates(
+            commissionRate: FeeSettings.defaultCommissionRate,
+            transactionTaxRate: FeeSettings.transactionTaxRate
+        )
+    ) -> LotMetrics {
+        let remainingCost = lot.remainingCost
+        guard let price = quote?.currentPrice, lot.remainingQuantity > 0 else {
+            return LotMetrics(
+                currentPrice: quote?.currentPrice,
+                marketValue: nil,
+                remainingCost: remainingCost,
+                estimatedSaleFees: .zero,
+                result: nil,
+                returnPercentage: nil
+            )
+        }
+        let marketValue = price * Decimal(lot.remainingQuantity)
+        let fees = FeeSettings.estimatedSaleFees(
+            quantity: lot.remainingQuantity,
+            pricePerShare: price,
+            rates: rates
+        ).total
+        let result = marketValue - remainingCost - fees
+        return LotMetrics(
+            currentPrice: price,
+            marketValue: marketValue,
+            remainingCost: remainingCost,
+            estimatedSaleFees: fees,
+            result: result,
+            returnPercentage: remainingCost > 0 ? result / remainingCost : nil
+        )
     }
 }
 

@@ -11,6 +11,9 @@ struct HoldingMetrics: Equatable {
     let totalQuantity: Int
     let totalRemainingCost: Decimal
     let isUsingFallbackPrice: Bool
+    /// What selling the remaining shares right now would cost in commission and
+    /// transaction tax, so the user can see the profit they would actually bank.
+    let estimatedSaleFees: Decimal
 
     var isAvailable: Bool { currentPrice != nil }
 
@@ -39,7 +42,11 @@ struct PortfolioTotals: Equatable {
 enum UnrealizedPnLCalculator {
     static func metrics(
         for holding: HoldingCalculator.Holding,
-        quote: Quote?
+        quote: Quote?,
+        rates: FeeRates = FeeRates(
+            commissionRate: FeeSettings.defaultCommissionRate,
+            transactionTaxRate: FeeSettings.transactionTaxRate
+        )
     ) -> HoldingMetrics {
         let quantity = Decimal(holding.totalQuantity)
         let cost = holding.totalRemainingCost
@@ -54,12 +61,20 @@ enum UnrealizedPnLCalculator {
                 holdingReturnPercentage: nil,
                 totalQuantity: holding.totalQuantity,
                 totalRemainingCost: cost,
-                isUsingFallbackPrice: false
+                isUsingFallbackPrice: false,
+                estimatedSaleFees: .zero
             )
         }
         let previousClose = quote.previousClose
         let singleDayResult: Decimal? = previousClose.map { (currentPrice - $0) * quantity }
-        let holdingResult = currentPrice * quantity - cost
+        // Net of the fees a real sale would incur, because a gross figure reads
+        // as more profit than the user would actually receive.
+        let saleFees = FeeSettings.estimatedSaleFees(
+            quantity: holding.totalQuantity,
+            pricePerShare: currentPrice,
+            rates: rates
+        ).total
+        let holdingResult = currentPrice * quantity - cost - saleFees
         return HoldingMetrics(
             symbol: holding.symbol,
             displayName: holding.displayName,
@@ -70,15 +85,20 @@ enum UnrealizedPnLCalculator {
             holdingReturnPercentage: cost == 0 ? nil : holdingResult / cost,
             totalQuantity: holding.totalQuantity,
             totalRemainingCost: cost,
-            isUsingFallbackPrice: quote.isFallback
+            isUsingFallbackPrice: quote.isFallback,
+            estimatedSaleFees: saleFees
         )
     }
 
     static func metrics(
         for holdings: [HoldingCalculator.Holding],
-        quotes: [String: Quote]
+        quotes: [String: Quote],
+        rates: FeeRates = FeeRates(
+            commissionRate: FeeSettings.defaultCommissionRate,
+            transactionTaxRate: FeeSettings.transactionTaxRate
+        )
     ) -> [HoldingMetrics] {
-        holdings.map { metrics(for: $0, quote: quotes[$0.symbol]) }
+        holdings.map { metrics(for: $0, quote: quotes[$0.symbol], rates: rates) }
     }
 
     static func totals(from metrics: [HoldingMetrics]) -> PortfolioTotals {

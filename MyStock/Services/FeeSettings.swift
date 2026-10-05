@@ -40,6 +40,30 @@ static func buyFees(
         roundDownToWholeUnit(commission(on: Decimal(quantity) * pricePerShare, rate: rate))
     }
 
+    /// What it would cost to sell now: commission plus transaction tax on the
+    /// gross value, each truncated the same way a real sale truncates it. The
+    /// unrealized screens subtract this so a holding's profit is the profit the
+    /// user would actually bank by selling at the current price.
+    static func estimatedSaleFees(
+        quantity: Int,
+        pricePerShare: Decimal,
+        rates: FeeRates
+    ) -> (commission: Decimal, transactionTax: Decimal, total: Decimal) {
+        estimatedSaleFees(
+            on: Decimal(quantity) * pricePerShare,
+            rates: rates
+        )
+    }
+
+    static func estimatedSaleFees(
+        on grossValue: Decimal,
+        rates: FeeRates
+    ) -> (commission: Decimal, transactionTax: Decimal, total: Decimal) {
+        let commission = roundDownToWholeUnit(commission(on: grossValue, rate: rates.commissionRate))
+        let tax = roundDownToWholeUnit(transactionTax(on: grossValue, rate: rates.transactionTaxRate))
+        return (commission, tax, commission + tax)
+    }
+
     /// Brokerages charge commission in whole dollars, discarding the fraction rather
     /// than rounding it up.
     static func roundDownToWholeUnit(_ value: Decimal) -> Decimal {

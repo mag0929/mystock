@@ -28,6 +28,25 @@ struct SaleResult: Equatable {
         allocations.reduce(Decimal.zero) { $0 + $1.realizedResult }
     }
 
+    /// What the shares sold for, before commission and transaction tax.
+    var grossProceeds: Decimal {
+        pricePerShare * Decimal(quantity)
+    }
+
+    /// The fee-inclusive cost of the allocated shares, which is the denominator
+    /// the unrealized screen already uses for a return percentage, so the two
+    /// screens stay comparable.
+    var costBasis: Decimal {
+        allocations.reduce(Decimal.zero) { $0 + $1.lotCostPerShare * Decimal($1.quantity) }
+    }
+
+    /// Nil when the cost basis is zero, so the screen can say why instead of
+    /// printing a zero or an infinity that reads like a real return.
+    var returnPercentage: Decimal? {
+        guard costBasis > 0 else { return nil }
+        return realizedResult / costBasis
+    }
+
     var allocatedQuantity: Int {
         allocations.reduce(0) { $0 + $1.quantity }
     }

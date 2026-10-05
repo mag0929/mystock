@@ -121,7 +121,7 @@ struct HoldingsListView: View {
     }
 
     private func lotRow(for lot: Lot) -> some View {
-        LotRowView(row: LotRowViewModel(lot: lot))
+        LotRowView(row: viewModel.lotRow(for: lot, context: context))
             .contentShape(Rectangle())
             .onTapGesture { editingLot = lot }
             .swipeActions(edge: .trailing) {
@@ -216,7 +216,24 @@ private struct PortfolioSummarySection: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            SectionFooterNote(text: Self.netOfFeesNote)
         }
+    }
+
+    /// Without this the user reads 持有收益 as a gross gain, then finds a sale
+    /// nets out smaller than the figure they were shown.
+    private static let netOfFeesNote = "持有收益與批次損益已依設定費率扣除估計賣出手續費與交易稅"
+}
+
+/// The same note where the figures appear, so a holding row is not read
+/// differently from the total above it.
+private struct SectionFooterNote: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.caption2)
+            .foregroundStyle(.secondary)
     }
 }
 
@@ -269,6 +286,10 @@ private struct HoldingSummaryRow: View {
                 )
             }
 
+            Text("持有收益與批次損益已依設定費率扣除估計賣出手續費與交易稅")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+
             HStack(spacing: 4) {
                 Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
                     .font(.caption2)
@@ -299,6 +320,12 @@ struct LotRowView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
+                // Symbol and name, so a row still says what it is when read on
+                // its own rather than only under its holding heading.
+                Text(row.symbol).font(.subheadline.weight(.medium))
+                if let name = row.displayName, !name.isEmpty {
+                    Text(name).font(.caption).foregroundStyle(.secondary)
+                }
                 Text(Format.date(row.lotDate)).font(.subheadline)
                 Text(row.typeText)
                     .font(.caption2)
@@ -310,15 +337,37 @@ struct LotRowView: View {
                 Text("剩餘 \(row.remainingText) / \(row.quantityText)").font(.caption)
             }
             if row.costFieldsAvailable {
+                // The purchase figures and the current figures on one row, so
+                // the user can see what a lot cost and what it is worth without
+                // matching rows against each other.
                 HStack {
-                    Text("單價 \(row.pricePerShareText)")
+                    Text("成交價 \(row.pricePerShareText)")
                     Text("手續費 \(row.commissionText)")
-                    Text("交易稅 \(row.transactionTaxText)")
+                    Text("持有成本 \(row.remainingCostText)")
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+                HStack {
+                    Text("時價 \(row.currentPriceText)")
+                    Text("市價 \(row.marketValueText)")
+                    Spacer()
+                    Text("損益 \(row.resultText)")
+                        .foregroundStyle(color(for: row.resultColorValue))
+                    Text("報酬率 \(row.returnText)")
+                        .foregroundStyle(color(for: row.resultColorValue))
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
             }
         }
         .padding(.vertical, 2)
+    }
+
+    private func color(for value: Decimal?) -> Color {
+        guard let value else { return .secondary }
+        if value > 0 { return .red }
+        if value < 0 { return .green }
+        return .primary
     }
 }

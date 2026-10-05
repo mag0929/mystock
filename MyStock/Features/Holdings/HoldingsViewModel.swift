@@ -25,6 +25,13 @@ final class HoldingsViewModel {
 
     private let quoteService: QuoteService
 
+    /// Read from the settings store so an estimate of what selling would cost
+    /// uses the user's own rates rather than the defaults.
+    private var feeRates = FeeRates(
+        commissionRate: FeeSettings.defaultCommissionRate,
+        transactionTaxRate: FeeSettings.transactionTaxRate
+    )
+
     init(quoteService: QuoteService = QuoteService()) {
         self.quoteService = quoteService
     }
@@ -36,21 +43,44 @@ final class HoldingsViewModel {
             .sorted()
     }
 
+    /// Builds a lot row carrying the stored name and the figures that make the
+    /// purchase comparable to the position's current value.
+    func lotRow(for lot: Lot, context: ModelContext) -> LotRowViewModel {
+        let rates = (try? FeeSettingsStore.currentRates(in: context))
+            ?? FeeRates(
+                commissionRate: FeeSettings.defaultCommissionRate,
+                transactionTaxRate: FeeSettings.transactionTaxRate
+            )
+        return LotRowViewModel(
+            lot: lot,
+            displayName: StockStore.name(for: lot.symbol, in: context),
+            metrics: LotPnLCalculator.metrics(for: lot, quote: quotes[lot.symbol], rates: rates)
+        )
+    }
+
     var metrics: [String: HoldingMetrics] {
         Dictionary(
             uniqueKeysWithValues: UnrealizedPnLCalculator
-                .metrics(for: holdings, quotes: quotes)
+                .metrics(for: holdings, quotes: quotes, rates: feeRates)
                 .map { ($0.symbol, $0) }
         )
     }
 
     func metrics(for holding: HoldingCalculator.Holding) -> HoldingMetrics {
-        UnrealizedPnLCalculator.metrics(for: holding, quote: quotes[holding.symbol])
+        UnrealizedPnLCalculator.metrics(
+            for: holding,
+            quote: quotes[holding.symbol],
+            rates: feeRates
+        )
     }
 
     var portfolioSummary: PortfolioSummary? {
         guard !holdings.isEmpty else { return nil }
-        let allMetrics = UnrealizedPnLCalculator.metrics(for: holdings, quotes: quotes)
+        let allMetrics = UnrealizedPnLCalculator.metrics(
+            for: holdings,
+            quotes: quotes,
+            rates: feeRates
+        )
         let totals = UnrealizedPnLCalculator.totals(from: allMetrics)
         let pricedMetrics = allMetrics.filter(\.isAvailable)
         let weightedChange = weightedChangePercentage(from: pricedMetrics)
@@ -74,6 +104,9 @@ final class HoldingsViewModel {
     /// Attaches the stored company names so the screen can show "2330 台積電"
     /// instead of a bare code.
     func applyDisplayNames(in context: ModelContext) {
+        if let rates = try? FeeSettingsStore.currentRates(in: context) {
+            feeRates = rates
+        }
         for index in holdings.indices {
             let symbol = holdings[index].symbol
             holdings[index].displayName = StockStore.name(for: symbol, in: context)

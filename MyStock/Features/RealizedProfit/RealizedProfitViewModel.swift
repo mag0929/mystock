@@ -52,4 +52,20 @@ final class RealizedProfitViewModel {
         guard let result else { return "—" }
         return Format.decimal(result.totalDeductions)
     }
+
+    var grossProceedsText: String {
+        guard let result else { return "—" }
+        return Format.decimal(result.grossProceedsTotal)
+    }
+
+    var costBasisText: String {
+        guard let result else { return "—" }
+        return Format.decimal(result.costBasisTotal)
+    }
+
+    var returnPercentageText: String {
+        guard let result else { return "—" }
+        guard let percentage = result.returnPercentage else { return "不適用" }
+        return Format.percent(percentage)
+    }
 }

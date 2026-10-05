@@ -173,6 +173,47 @@ The system SHALL present holdings as a list of individual lots. Each lot row MUS
 - **WHEN** the user expands a holding that contains a stock allocation lot
 - **THEN** the lot row shows type `stock-allocation`, quantity 200, and cost fields shown as unavailable
 
+### Requirement: Per-lot purchase figures against current value
+The system SHALL show, on each lot row, the symbol and its company name alongside the figures that let the user judge that lot without consulting any other screen: the purchase side (lot date, type, remaining and original share counts, purchase price, buy commission, and remaining cost) and the current side (current price, market value of the remaining shares, unrealized gain or loss, and return percentage). A symbol and a date alone do not tell the user what they paid or what the position is now worth.
+
+The lot's gain or loss SHALL be net of the commission and transaction tax that selling its remaining shares would incur, using the same definition the holding-level figure uses, so a lot row and its holding row report the same result for the same shares. It SHALL be computed from the lot's remaining shares and remaining cost, because shares already sold are reported as realized profit; a fully sold lot SHALL therefore report no unrealized result rather than counting its profit twice.
+
+#### Scenario: A lot row shows the purchase figures next to the current figures
+- **WHEN** the user expands a holding and a lot bought 200 shares at 141.5 with a buy commission of 40 has a current price of 152.5
+- **THEN** the row shows symbol 2330 and its name, purchase price 141.50, commission 40, remaining cost 28340, current price 152.50, market value 30500, gain +2026, and return +7.15%
+
+##### Example: three lots of the same symbol at the same current price
+| Lot date | Quantity | Purchase price | Commission | Remaining cost | Market value | Gain | Return |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026/07/14 | 200 | 141.50 | 40 | 28340 | 30500 | +2026 | +7.15% |
+| 2026/07/20 | 100 | 130.00 | 18 | 13018 | 15250 | +2166 | +16.64% |
+| 2026/08/07 | 200 | 117.00 | 33 | 23433 | 30500 | +6933 | +29.59% |
+
+Each gain is the market value less the remaining cost less the estimated sale
+fees: 134, 66, and 134 respectively at a market value of 30500 and 15250.
+
+#### Scenario: A partly sold lot is valued on the shares that remain
+- **WHEN** a lot of 200 shares bought at 141.5 has had 100 shares sold and the current price is 152.5
+- **THEN** the row shows a market value of 15250, a remaining cost of 14170, and a gain of 1014, rather than including the already realized half
+
+#### Scenario: A fully sold lot reports no unrealized result
+- **WHEN** every share of a lot has been sold
+- **THEN** the row reports the unrealized gain and return as unavailable, because that profit has already moved to realized profit and reporting it again would count it twice
+
+##### Example: a fully sold lot
+- **GIVEN** a lot of 200 shares bought at 141.5 has had all 200 shares sold at 152.5
+- **WHEN** the user expands the holding
+- **THEN** the row still shows its purchase price 141.50 and commission 40, but its market value, gain, and return all read 不可用
+
+#### Scenario: Without a price the current figures are unavailable
+- **WHEN** no current price is available for a lot's symbol
+- **THEN** the row reports the current price, market value, gain, and return as unavailable rather than as zero
+
+##### Example: an unpriced symbol
+- **GIVEN** a lot of 200 shares bought at 141.5 whose symbol has no available quote
+- **WHEN** the user expands the holding
+- **THEN** the row reads 持有成本 28,340 and 時價 不可用, 市價 不可用, 損益 不可用, 報酬率 不可用
+
 ### Requirement: Holding aggregates
 The system SHALL compute, for each stock symbol, the total remaining quantity across all its lots, the total remaining cost across its lots, and the weighted average cost per share as total remaining cost divided by total remaining quantity. The system SHALL compute these aggregates over all lots of the symbol regardless of lot type.
 

@@ -18,6 +18,21 @@ struct RealizedQueryResult: Equatable {
     let bySymbol: [SymbolRealizedTotal]
 
     var totalDeductions: Decimal { commissionTotal + transactionTaxTotal }
+
+    var grossProceedsTotal: Decimal {
+        sales.reduce(Decimal.zero) { $0 + $1.grossProceeds }
+    }
+
+    var costBasisTotal: Decimal {
+        sales.reduce(Decimal.zero) { $0 + $1.costBasis }
+    }
+
+    /// Nil when nothing was allocated in the period, because a return over a
+    /// zero cost basis has no meaning.
+    var returnPercentage: Decimal? {
+        guard costBasisTotal > 0 else { return nil }
+        return realizedTotal / costBasisTotal
+    }
 }
 
 struct SymbolRealizedTotal: Equatable {
@@ -25,6 +40,13 @@ struct SymbolRealizedTotal: Equatable {
     let realizedTotal: Decimal
     let saleCount: Int
     let quantitySold: Int
+    let grossProceedsTotal: Decimal
+    let costBasisTotal: Decimal
+
+    var returnPercentage: Decimal? {
+        guard costBasisTotal > 0 else { return nil }
+        return realizedTotal / costBasisTotal
+    }
 }
 
 enum RealizedQueryCalendar {
@@ -91,7 +113,9 @@ enum RealizedQueryService {
                 symbol: symbol,
                 realizedTotal: entries.reduce(Decimal.zero) { $0 + $1.realizedResult },
                 saleCount: entries.count,
-                quantitySold: entries.reduce(0) { $0 + $1.quantity }
+                quantitySold: entries.reduce(0) { $0 + $1.quantity },
+                grossProceedsTotal: entries.reduce(Decimal.zero) { $0 + $1.grossProceeds },
+                costBasisTotal: entries.reduce(Decimal.zero) { $0 + $1.costBasis }
             )
         }
 

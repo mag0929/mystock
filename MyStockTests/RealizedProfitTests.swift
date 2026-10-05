@@ -168,3 +168,260 @@ struct RealizedProfitTests {
         #expect(result.allocations[0].allocatedDeductions == result.totalDeductions)
     }
 }
+@MainActor
+@Suite("Realized profit proceeds, cost, and return")
+struct RealizedProfitReturnTests {
+    private func setUp() throws -> (ModelContainer, ModelContext) {
+        let container = try Persistence.makeInMemoryContainer()
+        return (container, ModelContext(container))
+    }
+
+    private var rates: FeeRates {
+        FeeRates(commissionRate: Decimal(string: "0.001425") ?? .zero, transactionTaxRate: Decimal(string: "0.003") ?? .zero)
+    }
+
+    private func addLot(
+        _ context: ModelContext,
+        day: Int,
+        price: Decimal,
+        fees: Decimal = 0
+    ) -> Lot {
+        let lot = Lot(
+            symbol: "2330",
+            lotDate: Fixtures.makeDate(2026, 1, day),
+            quantity: 1000,
+            pricePerShare: price,
+            totalFees: fees,
+            lotType: .buy
+        )
+        context.insert(lot)
+        return lot
+    }
+
+    private func result(
+        for sale: Sale,
+        in context: ModelContext
+    ) throws -> SaleResult {
+        RealizedPnLCalculator.result(for: sale, allocations: try SaleStore.allocations(for: sale, in: context))
+    }
+
+    @Test("Gross proceeds exclude commission and transaction tax")
+    func grossProceedsExcludeFees() throws {
+        let (_, context) = try setUp()
+        let lot = addLot(context, day: 20, price: 90)
+        let sale = try SaleStore.save(
+            symbol: "2330",
+            saleDate: Fixtures.makeDate(2026, 3, 5),
+            quantity: 1000,
+            pricePerShare: 130,
+            drafts: [DraftAllocation(lot: lot, quantity: 1000)],
+            rates: rates,
+            in: context
+        )
+        let computed = try result(for: sale, in: context)
+
+        #expect(computed.grossProceeds == 130000)
+        #expect(computed.totalDeductions == 575)
+        #expect(computed.realizedResult == computed.grossProceeds - computed.costBasis - computed.totalDeductions)
+    }
+
+    @Test("Cost basis is the cost of the allocated shares")
+    func costBasisIsFeeInclusive() throws {
+        let (_, context) = try setUp()
+        let lot = addLot(context, day: 20, price: 90, fees: 1425)
+        let sale = try SaleStore.save(
+            symbol: "2330",
+            saleDate: Fixtures.makeDate(2026, 3, 5),
+            quantity: 1000,
+            pricePerShare: 130,
+            drafts: [DraftAllocation(lot: lot, quantity: 1000)],
+            rates: rates,
+            in: context
+        )
+        let computed = try result(for: sale, in: context)
+
+        #expect(computed.costBasis == Decimal(string: "91425"))
+    }
+
+    @Test("Cost basis counts only the allocated shares")
+    func costBasisCoversAllocatedSharesOnly() throws {
+        let (_, context) = try setUp()
+        let lot = addLot(context, day: 20, price: 90)
+        let sale = try SaleStore.save(
+            symbol: "2330",
+            saleDate: Fixtures.makeDate(2026, 3, 5),
+            quantity: 400,
+            pricePerShare: 130,
+            drafts: [DraftAllocation(lot: lot, quantity: 400)],
+            rates: rates,
+            in: context
+        )
+        let computed = try result(for: sale, in: context)
+
+        #expect(computed.costBasis == 36000)
+    }
+
+    @Test("Return percentage is measured against the cost basis")
+    func returnPercentageOverCostBasis() throws {
+        let (_, context) = try setUp()
+        let lot = addLot(context, day: 20, price: 90)
+        let sale = try SaleStore.save(
+            symbol: "2330",
+            saleDate: Fixtures.makeDate(2026, 3, 5),
+            quantity: 1000,
+            pricePerShare: 130,
+            drafts: [DraftAllocation(lot: lot, quantity: 1000)],
+            rates: rates,
+            in: context
+        )
+        let computed = try result(for: sale, in: context)
+
+        let expected = computed.realizedResult / computed.costBasis
+        #expect(computed.returnPercentage == expected)
+        #expect(computed.returnPercentage! > 0)
+    }
+
+    @Test("A return over a zero cost basis is unavailable")
+    func zeroCostBasisHasNoReturn() throws {
+        let (_, context) = try setUp()
+        let lot = addLot(context, day: 20, price: 90, fees: -90000)
+        let sale = try SaleStore.save(
+            symbol: "2330",
+            saleDate: Fixtures.makeDate(2026, 3, 5),
+            quantity: 1000,
+            pricePerShare: 130,
+            drafts: [DraftAllocation(lot: lot, quantity: 1000)],
+            rates: rates,
+            in: context
+        )
+        let computed = try result(for: sale, in: context)
+
+        #expect(computed.costBasis <= 0)
+        #expect(computed.returnPercentage == nil)
+    }
+
+    @Test("The allocation detail sums to the sale's realized profit")
+    func allocationDetailSumsToRealizedProfit() throws {
+        let (_, context) = try setUp()
+        let cheap = addLot(context, day: 10, price: 90)
+        let dear = addLot(context, day: 20, price: 150)
+        let sale = try SaleStore.save(
+            symbol: "2330",
+            saleDate: Fixtures.makeDate(2026, 3, 5),
+            quantity: 1000,
+            pricePerShare: 130,
+            drafts: [
+                DraftAllocation(lot: cheap, quantity: 600),
+                DraftAllocation(lot: dear, quantity: 400)
+            ],
+            rates: rates,
+            in: context
+        )
+        let computed = try result(for: sale, in: context)
+
+        #expect(computed.allocations.count == 2)
+        #expect(computed.allocations[0].quantity == 600)
+        #expect(computed.allocations[1].quantity == 400)
+        #expect(computed.allocations[0].lotCostPerShare == 90)
+        #expect(computed.allocations[1].lotCostPerShare == 150)
+        #expect(computed.allocations[0].salePricePerShare == 130)
+        let sum = computed.allocations.reduce(Decimal.zero) { $0 + $1.realizedResult }
+        #expect(sum == computed.realizedResult)
+        #expect(computed.costBasis == 114000)
+    }
+
+    @Test("A period summary sums its sales rather than averaging their returns")
+    func periodSummarySumsItsSales() throws {
+        let (_, context) = try setUp()
+        let cheap = addLot(context, day: 10, price: 90)
+        let dear = addLot(context, day: 20, price: 150)
+
+        _ = try SaleStore.save(
+            symbol: "2330",
+            saleDate: Fixtures.makeDate(2026, 3, 5),
+            quantity: 1000,
+            pricePerShare: 130,
+            drafts: [DraftAllocation(lot: cheap, quantity: 1000)],
+            rates: rates,
+            in: context
+        )
+        _ = try SaleStore.save(
+            symbol: "2330",
+            saleDate: Fixtures.makeDate(2026, 3, 20),
+            quantity: 1000,
+            pricePerShare: 140,
+            drafts: [DraftAllocation(lot: dear, quantity: 1000)],
+            rates: rates,
+            in: context
+        )
+
+        let sales = try context.fetch(FetchDescriptor<Sale>())
+        var allocations: [UUID: [SaleAllocation]] = [:]
+        for sale in sales {
+            allocations[sale.id] = try SaleStore.allocations(for: sale, in: context)
+        }
+        let query = RealizedQueryService.run(
+            period: .currentMonth,
+            sales: sales,
+            allocationsBySaleID: allocations,
+            now: Fixtures.makeDate(2026, 3, 25)
+        )
+
+        #expect(query.saleCount == 2)
+        #expect(query.grossProceedsTotal == 270000)
+        #expect(query.costBasisTotal == 240000)
+        #expect(query.realizedTotal == query.sales.reduce(Decimal.zero) { $0 + $1.realizedResult })
+        // 40000 - 185 - 390, then -10000 - 199 - 420.
+        #expect(query.realizedTotal == 28806)
+        #expect(query.returnPercentage == query.realizedTotal / query.costBasisTotal)
+        #expect(Format.percent(query.returnPercentage!) == "+12.00%")
+    }
+
+    @Test("A symbol group reports its own proceeds, cost, and return")
+    func symbolGroupFigures() throws {
+        let (_, context) = try setUp()
+        let lot = addLot(context, day: 20, price: 90)
+        _ = try SaleStore.save(
+            symbol: "2330",
+            saleDate: Fixtures.makeDate(2026, 3, 5),
+            quantity: 1000,
+            pricePerShare: 130,
+            drafts: [DraftAllocation(lot: lot, quantity: 1000)],
+            rates: rates,
+            in: context
+        )
+
+        let sales = try context.fetch(FetchDescriptor<Sale>())
+        var allocations: [UUID: [SaleAllocation]] = [:]
+        for sale in sales {
+            allocations[sale.id] = try SaleStore.allocations(for: sale, in: context)
+        }
+        let query = RealizedQueryService.run(
+            period: .currentMonth,
+            sales: sales,
+            allocationsBySaleID: allocations,
+            now: Fixtures.makeDate(2026, 3, 25)
+        )
+
+        let group = try #require(query.bySymbol.first)
+        #expect(group.symbol == "2330")
+        #expect(group.grossProceedsTotal == 130000)
+        #expect(group.costBasisTotal == 90000)
+        #expect(group.returnPercentage == group.realizedTotal / group.costBasisTotal)
+    }
+
+    @Test("A period with no sales has no return percentage")
+    func emptyPeriodHasNoReturn() throws {
+        let (_, context) = try setUp()
+        let query = RealizedQueryService.run(
+            period: .currentMonth,
+            sales: [],
+            allocationsBySaleID: [:],
+            now: Fixtures.makeDate(2026, 3, 25)
+        )
+
+        #expect(query.saleCount == 0)
+        #expect(query.returnPercentage == nil)
+        #expect(query.bySymbol.isEmpty)
+    }
+}

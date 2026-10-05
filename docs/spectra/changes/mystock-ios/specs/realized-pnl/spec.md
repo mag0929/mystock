@@ -127,6 +127,84 @@ The system SHALL allow the user to view the realized profit result grouped by st
 - **WHEN** the user selects symbol 2330 for a realized profit query covering 2026-03-01 to 2026-03-31 and two sales of 2330 occurred in that range
 - **THEN** the system reports one group for 2330 whose total equals the sum of those two sales' realized profits, and excludes any other symbol's sales
 
+### Requirement: Proceeds, cost, and return percentage
+A bare profit figure does not tell the user whether a sale was worthwhile, so the system SHALL report the gross proceeds, the cost basis, the profit or loss, and the return percentage alongside it. The return percentage SHALL be measured against the fee-inclusive cost basis, because that is the denominator the unrealized screen already uses and the two screens must stay comparable. The system SHALL report the percentage as unavailable when the cost basis is zero, rather than printing a figure that implies a return.
+
+#### Scenario: Gross proceeds exclude fees
+- **WHEN** 1000 shares are sold at 130
+- **THEN** the system reports gross proceeds of 130000, before commission and transaction tax are deducted
+
+#### Scenario: Cost basis covers the allocated shares only
+- **WHEN** a sale of 1000 shares at 130 is allocated 1000 shares from a lot bought at 90 with fees included in its cost
+- **THEN** the system reports the cost basis of that lot's fee-inclusive cost per share times 1000
+
+#### Scenario: Return percentage over the cost basis
+- **WHEN** the realized profit is 20000 and the cost basis is 100000
+- **THEN** the system reports a return percentage of +20.00%
+
+#### Scenario: A return over a zero cost basis is unavailable
+- **WHEN** the period contains a sale whose allocated lots have a zero cost basis
+- **THEN** the system reports the profit or loss in currency but reports the return percentage as unavailable
+
+##### Example: a stock allocation lot has no cost basis
+- **GIVEN** a sale was allocated only to a stock allocation lot, whose cost per share is 0
+- **WHEN** the user queries a period containing that sale
+- **THEN** the summary shows the realized profit in currency and shows 報酬率 as 不適用
+
+#### Scenario: The period summary reports proceeds, cost, profit, and return
+- **WHEN** the user queries a period containing sales
+- **THEN** the summary reports the gross proceeds total, the cost basis total, the realized profit or loss, and the return percentage for the period, together with the sale count and the deducted fees and tax
+
+##### Example: a period summary
+- **GIVEN** a period containing two sales of 2330, one of 1000 shares at 130 against a cost of 90000 and one of 1000 shares at 140 against a cost of 150000
+- **WHEN** the user queries that month
+- **THEN** the summary reads 營業收入 270000、成本 240000、損益 +28806、報酬率 +12.00%, with the deductions listed separately
+
+#### Scenario: The same figures are reported per symbol group and per sale
+- **WHEN** the screen lists a symbol group or an individual sale
+- **THEN** each reports its gross proceeds, its cost basis, its profit or loss, and its return percentage, using the same definitions as the period summary
+
+##### Example: a period summary
+- **GIVEN** a period containing one sale of 1000 shares at 130 whose cost basis is 100000 and whose realized profit is 20000
+- **WHEN** the period summary is rendered
+- **THEN** it reads 營業收入 130000、成本 100000、損益 +20000、報酬率 +20.00%
+
+### Requirement: Sale records expose the lots they drew from
+The system SHALL let the user open an individual sale record to see which purchase lots the sale was allocated to, because the realized profit of a sale depends entirely on that choice. The system SHALL show, per allocation, the lot date, the shares taken, the fee-inclusive cost per share, the sale price per share, and the resulting profit or loss.
+
+#### Scenario: Opening a sale's allocation detail
+- **WHEN** a sale of 1000 shares at 130 was allocated 600 shares from a lot at 90 and 400 shares from a lot at 150
+- **THEN** opening the sale's detail lists those two allocations with their lot dates, share counts, cost per share, sale price per share, and profit or loss
+
+#### Scenario: The allocation detail matches the reported profit
+- **WHEN** the user compares the detail rows against the sale's reported profit
+- **THEN** the sum of the detail rows' profits equals the sale's reported profit
+
+##### Example: profit split by lot
+- **GIVEN** a sale of 1000 shares at 130 allocated 600 shares from a lot at 90 and 400 shares from a lot at 150
+- **WHEN** the user opens the allocation detail
+- **THEN** the two rows report +24000 and -8000, which sum to the sale's reported +16000
+
+### Requirement: Purchase prices are visible while allocating a sale
+The system SHALL show each allocatable lot's original purchase price and its fee-inclusive cost per share in the sale form, because a symbol and a date do not tell the user what they paid and they need that to judge the sale price they are entering. The system SHALL also show the purchase price and sale price beside each allocation's profit, so the user can see which lot produced which profit.
+
+#### Scenario: The allocation list shows what each lot cost
+- **WHEN** the sale form lists the lots available for allocation
+- **THEN** each lot shows its original purchase price per share and its fee-inclusive cost per share, along with its date and remaining shares
+
+##### Example: a lot bought at 150 with fees
+- **GIVEN** a lot bought at 150 with fees of 1425 on 1000 shares
+- **WHEN** the sale form lists it as an allocation candidate
+- **THEN** the row reads 買進 150.00 and 每股成本 151.43
+
+#### Scenario: Each allocation row shows the purchase and sale prices
+- **WHEN** the user allocates shares from a lot and the allocation's profit is reported
+- **THEN** the row shows the lot's cost per share, the sale price per share, and the number of shares allocated
+
+##### Example: an allocation row
+- **WHEN** 600 shares from a lot at 150 are sold at 180
+- **THEN** the row reads 買進 150.00／賣出 180.00 × 600 股
+
 ### Requirement: Fee and tax handling on sales
 The system SHALL record, for every sale, the commission and the Taiwan stock transaction tax at 0.3 percent of the sale value, and SHALL deduct both from the realized profit. The system SHALL read the commission rate from the settings store and SHALL apply the rate in effect when the sale was recorded. The system SHALL discard the fractional dollar of every fee and tax it records, because brokerages charge whole dollars. The system SHALL also record the 0.4 percent securities transaction tax as a reference figure for the sale, without deducting it from realized profit, because Taiwan assesses that tax at annual settlement rather than per trade.
 

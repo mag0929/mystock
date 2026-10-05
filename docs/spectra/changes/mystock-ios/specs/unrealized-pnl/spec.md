@@ -53,28 +53,46 @@ The system SHALL compute single day gain or loss as the current price minus the 
 - **WHEN** symbol 2330 has a current price of 120, a previous closing price of 125, and 2200 remaining shares
 - **THEN** the system displays a single day loss of 11000
 
-### Requirement: Holding gain or loss against remaining cost
-The system SHALL compute holding gain or loss as the current price multiplied by the holding's total remaining share count, minus the holding's total remaining cost, and SHALL display the signed result, the corresponding percentage, and the current price alongside it. The percentage SHALL be the holding gain or loss divided by the total remaining cost. When the total remaining cost is zero, the system SHALL display the percentage as unavailable and still display the absolute result. When no price is available, the system SHALL display the holding gain or loss as unavailable.
+### Requirement: Holding gain or loss is net of the fees a sale would incur
+The system SHALL compute holding gain or loss as the current price multiplied by the holding's total remaining share count, minus the holding's total remaining cost, minus the commission and transaction tax that selling those shares now would incur. It SHALL display the signed result, the corresponding percentage, and the current price alongside it. The percentage SHALL be the holding gain or loss divided by the total remaining cost.
 
-#### Scenario: Holding profit
+The estimated sale fees SHALL be computed at the rates currently configured in the settings store and SHALL be truncated to whole dollars exactly as a recorded sale truncates them, so the estimate does not promise a fraction of a dollar that a brokerage would not return. Deducting the fees is required because a gross figure reads as more profit than the user would actually receive, and the same figure is reported once realized in the realized profit screens.
+
+When the total remaining cost is zero, the system SHALL display the percentage as unavailable and still display the absolute result. When no price is available, the system SHALL display the holding gain or loss as unavailable.
+
+#### Scenario: The figures state that the fees are already deducted
+- **WHEN** the user views a holding or the portfolio total
+- **THEN** the screen states that 持有收益 and the per-lot 損益 are already net of the estimated sale commission and transaction tax, so a gross gain is never what the user reads
+
+##### Example: the note on both screens
+- **GIVEN** a holding of 2200 shares with cost 240000 at a current price of 130
+- **WHEN** the user reads the holding row and the portfolio total
+- **THEN** both places carry the text 持有收益與批次損益已依設定費率扣除估計賣出手續費與交易稅, next to the 44735 figure
+
+#### Scenario: Holding profit is net of the estimated sale fees
 - **WHEN** symbol 2330 has 2200 remaining shares, total remaining cost 240000, and a current price of 130
-- **THEN** the system displays a holding gain of 46000 and a holding return of 19.17%, and the average cost 109.09 next to the current price 130
+- **THEN** the system displays a holding gain of 44735 and a holding return of 18.64%, being 286000 market value less 240000 cost less 1265 estimated sale fees
 
-#### Scenario: Holding loss
-- **WHEN** symbol 2330 has 2200 remaining shares, total remaining cost 240000, and a current price of 109.09
-- **THEN** the system displays a holding loss of 2 and a holding return of 0.00%
+##### Example: the estimated fees at a market value of 286000
+| Component | Rate | Before truncation | Recorded |
+| --- | --- | --- | --- |
+| Commission | 0.1425% | 407.55 | 407 |
+| Transaction tax | 0.3% | 858 | 858 |
+| Total deducted | | | 1265 |
 
-##### Example: price equal to the rounded average cost
-| Quantity | Total cost | Average cost per share | Current price | Holding result |
-| --- | --- | --- | --- | --- |
-| 2200 | 240000 | 109.09 | 109.09 | -2 |
-| 2200 | 240000 | 109.090909… | 109.090909… | 0 |
+#### Scenario: Selling at the average cost still loses the fees
+- **WHEN** symbol 2330 has 2200 remaining shares, total remaining cost 240000, and a current price equal to the average cost
+- **THEN** the system displays a holding loss of 1062 and a holding return of -0.44%, because the fees would still be paid at a break-even price
 
-The displayed average cost is rounded to two decimal places, so a current
-price copied from the displayed average does not reproduce a zero result.
-The system computes the result from the exact remaining cost and quantity,
-not from the rounded average, so the second row is the only case that
-returns 0.
+##### Example: break-even price still shows a loss
+| Quantity | Total cost | Current price | Holding result |
+| --- | --- | --- | --- |
+| 2200 | 240000 | 109.09 | -1062 |
+| 2200 | 240000 | 109.090909… | -1060 |
+
+Reporting 0 at a break-even price would promise a profit the user would not receive.
+The difference between the two rows is the truncated commission on a slightly
+different market value, not rounding of the displayed average cost.
 
 #### Scenario: Average cost and current price shown together
 - **WHEN** symbol 2330 has 2200 remaining shares, total remaining cost 240000, and a current price of 130
@@ -100,18 +118,18 @@ returns 0.
 ##### Example: one symbol priced, one not
 - **GIVEN** symbol 2330 has 2200 shares at total cost 240000 with a current price of 130, and symbol 2317 has 1000 shares at total cost 50000 with no available price
 - **WHEN** the system computes per-symbol and portfolio figures
-- **THEN** 2330 shows a holding gain of 46000, 2317 shows all three figures as unavailable, and the portfolio holding gain is 46000 with a stated exclusion count of 1
+- **THEN** 2330 shows a holding gain of 44735, 2317 shows all three figures as unavailable, and the portfolio holding gain is 44735 with a stated exclusion count of 1
 
 ### Requirement: Portfolio level unrealized totals
 The system SHALL compute a portfolio-level holding gain or loss as the sum of the per-symbol holding results, and SHALL compute a portfolio-level single day result as the sum of the per-symbol single day results. Symbols without an available price SHALL be excluded from the totals, and the system SHALL display the number of excluded symbols when any are excluded.
 
 #### Scenario: Summing across symbols
-- **WHEN** symbol 2330 shows a holding gain of 46000 and symbol 2317 shows a holding loss of 5000, and both have available prices
-- **THEN** the system displays a portfolio holding gain of 41000
+- **WHEN** symbol 2330 shows a holding gain of 44735 and symbol 2317 shows a holding loss of 5199, and both have available prices
+- **THEN** the system displays a portfolio holding gain of 39536
 
 #### Scenario: Excluding symbols without prices
-- **WHEN** symbol 2330 shows a holding gain of 46000 and symbol 2317 has no available price
-- **THEN** the system displays a portfolio holding gain of 46000 and states that 1 symbol is excluded
+- **WHEN** symbol 2330 shows a holding gain of 44735 and symbol 2317 has no available price
+- **THEN** the system displays a portfolio holding gain of 44735 and states that 1 symbol is excluded
 
 ### Requirement: Fee-adjusted cost basis
 The system SHALL include recorded lot fees and stock transaction tax in the holding cost basis so that the displayed holding result reflects net proceeds. The system SHALL read the applicable fee rates from a settings store, allowing the user to change the rates, and SHALL apply the rates in effect when the lot was recorded to that lot's stored cost.

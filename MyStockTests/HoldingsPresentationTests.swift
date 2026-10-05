@@ -34,7 +34,7 @@ struct HoldingsPresentationTests {
         #expect(metrics.symbol == "2330")
         #expect(metrics.currentPrice == 130)
         #expect(metrics.totalQuantity == 2200)
-        #expect(metrics.holdingResult == 46000)
+        #expect(metrics.holdingResult == 44735)
         #expect(metrics.singleDayResult == 11000)
     }
 
@@ -44,13 +44,13 @@ struct HoldingsPresentationTests {
         let metrics = viewModel.metrics(for: viewModel.holdings[0])
 
         #expect(metrics.averageCostPerShare == Decimal(240000) / Decimal(2200))
-        #expect((metrics.holdingReturnPercentage ?? .zero).rounded(scale: 4) == Decimal(string: "0.1917"))
+        #expect((metrics.holdingReturnPercentage ?? .zero).rounded(scale: 4) == Decimal(string: "0.1864"))
     }
 
     @Test("Per lot rows show the stock allocation type and hide its costs")
     func lotRowsShowTypeIndicator() async {
         let viewModel = await pricedViewModel()
-        let rows = viewModel.holdings[0].lots.map(LotRowViewModel.init(lot:))
+        let rows = viewModel.holdings[0].lots.map { LotRowViewModel(lot: $0) }
 
         #expect(rows.count == 3)
         #expect(rows.map(\.typeText) == ["買進", "買進", "配股"])
@@ -63,7 +63,7 @@ struct HoldingsPresentationTests {
         let viewModel = await pricedViewModel()
         let summary = viewModel.portfolioSummary
 
-        #expect(summary?.holdingText == "+46,000")
+        #expect(summary?.holdingText == "+44,735")
         #expect(summary?.singleDayText == "+11,000")
         #expect(summary?.excludedSymbolCount == 0)
     }
@@ -108,7 +108,7 @@ struct HoldingsPresentationTests {
 
         #expect(metrics.isUsingFallbackPrice == true)
         #expect(metrics.currentPrice == 128)
-        #expect((metrics.holdingResult ?? .zero).rounded(scale: 2) == Decimal(41600))
+        #expect((metrics.holdingResult ?? .zero).rounded(scale: 2) == Decimal(40355))
     }
 
     @Test("Stock allocation lots are not offered as sale candidates")

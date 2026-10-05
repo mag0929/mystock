@@ -80,22 +80,26 @@ struct UnrealizedPnLTests {
         #expect(result.currentPrice == nil)
     }
 
-    @Test("Holding profit")
+    @Test("Holding profit is net of the fees a sale would incur")
     func holdingProfit() {
         let result = UnrealizedPnLCalculator.metrics(for: holding(), quote: quote(current: 130, previous: 125))
-        #expect(result.holdingResult == 46000)
-        #expect((result.holdingReturnPercentage ?? .zero).rounded(scale: 4) == Decimal(string: "0.1917"))
+        // 286000 market value - 240000 cost - 1265 estimated sale fees.
+        #expect(result.estimatedSaleFees == 1265)
+        #expect(result.holdingResult == 44735)
+        #expect((result.holdingReturnPercentage ?? .zero).rounded(scale: 4) == Decimal(string: "0.1864"))
     }
 
-    @Test("Holding loss")
+    @Test("Selling at the average cost still loses the fees")
     func holdingLoss() {
         let atRoundedAverage = UnrealizedPnLCalculator.metrics(for: holding(), quote: quote(current: Decimal(string: "109.09")!, previous: 109))
         let atExactAverage = UnrealizedPnLCalculator.metrics(for: holding(), quote: quote(current: Decimal(240000) / Decimal(2200), previous: 109))
 
-        #expect((atRoundedAverage.holdingResult ?? .zero).rounded(scale: 0) == -2)
-        #expect((atRoundedAverage.holdingReturnPercentage ?? .zero).rounded(scale: 4) == 0)
-        #expect((atExactAverage.holdingResult ?? .zero).rounded(scale: 0) == 0)
-        #expect((atExactAverage.holdingReturnPercentage ?? .zero).rounded(scale: 4) == 0)
+        // Even at a break-even price the result is negative, because the fees
+        // would be paid. Printing 0 would promise a profit the user would not get.
+        #expect((atRoundedAverage.holdingResult ?? .zero).rounded(scale: 0) == -1062)
+        #expect((atRoundedAverage.holdingReturnPercentage ?? .zero).rounded(scale: 4) == Decimal(string: "-0.0044"))
+        #expect((atExactAverage.holdingResult ?? .zero).rounded(scale: 0) == -1060)
+        #expect((atExactAverage.holdingReturnPercentage ?? .zero).rounded(scale: 4) == Decimal(string: "-0.0044"))
     }
 
     @Test("Zero remaining cost")
@@ -104,7 +108,7 @@ struct UnrealizedPnLTests {
         let result = UnrealizedPnLCalculator.metrics(for: zeroCost, quote: quote(current: 50, previous: 49))
 
         #expect(result.totalRemainingCost == 0)
-        #expect(result.holdingResult == 10000)
+        #expect(result.holdingResult == 9956)
         #expect(result.holdingReturnPercentage == nil)
     }
 
@@ -114,7 +118,7 @@ struct UnrealizedPnLTests {
         let result = UnrealizedPnLCalculator.metrics(for: withFees, quote: quote(current: 130, previous: 125))
 
         #expect(withFees.totalRemainingCost == 151425)
-        #expect(result.holdingResult == -21425)
+        #expect(result.holdingResult == -22000)
     }
 
     @Test("Fallback price is flagged on the row")
@@ -136,7 +140,7 @@ struct UnrealizedPnLTests {
 
         let totals = UnrealizedPnLCalculator.totals(from: metrics)
 
-        #expect(totals.holdingResult == 41000)
+        #expect(totals.holdingResult == 39536)
         #expect(totals.excludedSymbolCount == 0)
         #expect(totals.includedSymbolCount == 2)
     }
@@ -153,7 +157,7 @@ struct UnrealizedPnLTests {
 
         let totals = UnrealizedPnLCalculator.totals(from: metrics)
 
-        #expect(totals.holdingResult == 46000)
+        #expect(totals.holdingResult == 44735)
         #expect(totals.excludedSymbolCount == 1)
         #expect(totals.includedSymbolCount == 1)
         #expect(metrics.first { $0.symbol == "2317" }?.isAvailable == false)
@@ -173,11 +177,11 @@ struct UnrealizedPnLTests {
         let priced = metrics.first { $0.symbol == "2330" }!
         let unpriced = metrics.first { $0.symbol == "2317" }!
 
-        #expect(priced.holdingResult == 46000)
+        #expect(priced.holdingResult == 44735)
         #expect(unpriced.holdingResult == nil)
         #expect(unpriced.priceChangePercentage == nil)
         #expect(unpriced.singleDayResult == nil)
-        #expect(totals.holdingResult == 46000)
+        #expect(totals.holdingResult == 44735)
         #expect(totals.excludedSymbolCount == 1)
     }
 
@@ -187,7 +191,7 @@ struct UnrealizedPnLTests {
         let result = UnrealizedPnLCalculator.metrics(for: soldFirstLot, quote: quote(current: 130, previous: 125))
 
         #expect(result.totalQuantity == 1800)
-        #expect((result.holdingResult ?? .zero).rounded(scale: 2) == 54000)
+        #expect((result.holdingResult ?? .zero).rounded(scale: 2) == 52965)
     }
 
     @Test("Empty portfolio totals")

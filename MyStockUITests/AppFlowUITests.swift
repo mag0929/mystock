@@ -73,6 +73,19 @@ final class AppFlowUITests: XCTestCase {
         let save = app.buttons["儲存"]
         XCTAssertFalse(save.isEnabled, "尚未逐批分配股數前不應可儲存")
 
+        // Without the purchase price the user cannot sanity check the 180 they
+        // are about to type against the 150 they paid.
+        XCTAssertTrue(
+            app.staticTexts["買進"].waitForExistence(timeout: 5),
+            "配對候選清單應顯示買進價，否則無法判斷賣價是否合理"
+        )
+        XCTAssertTrue(
+            app.staticTexts.matching(
+                NSPredicate(format: "label == %@", "每股成本")
+            ).firstMatch.waitForExistence(timeout: 5),
+            "配對候選清單應顯示含費用的每股成本"
+        )
+
         let allocationFields = app.textFields.matching(
             NSPredicate(format: "placeholderValue == %@", "配對股數")
         )
@@ -99,6 +112,31 @@ final class AppFlowUITests: XCTestCase {
         XCTAssertTrue(
             app.staticTexts["依代號"].waitForExistence(timeout: 5),
             "本期賣出應出現在依代號彙總中"
+        )
+
+        // A profit figure alone does not tell the user whether the sale was
+        // worthwhile, so the summary has to carry the revenue, the cost, and
+        // the return that connects them.
+        for label in ["營業收入", "成本", "損益", "報酬率"] {
+            XCTAssertTrue(
+                app.staticTexts[label].waitForExistence(timeout: 5),
+                "合計區塊應顯示「\(label)」，否則無法判斷這筆賣出是否划算"
+            )
+        }
+
+        let disclosure = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS '配對明細'")
+        ).firstMatch
+        XCTAssertTrue(
+            disclosure.waitForExistence(timeout: 5),
+            "逐筆賣出應提供配對明細入口，讓使用者知道這筆賣出取用了哪些批次"
+        )
+        disclosure.tap()
+        XCTAssertTrue(
+            app.staticTexts.matching(
+                NSPredicate(format: "label CONTAINS '買進 150'")
+            ).firstMatch.waitForExistence(timeout: 5),
+            "配對明細應顯示原始買進價 150 與賣出價，讓使用者核對"
         )
     }
 

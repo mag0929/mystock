@@ -90,6 +90,13 @@ struct SaleEditorView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            // A code and a date do not tell the user what they paid, which they
+            // need in order to sanity check the sale price they are typing.
+            HStack(spacing: 12) {
+                LabeledContent("買進") { Text(Format.decimal(lot.pricePerShare)) }
+                LabeledContent("每股成本") { Text(Format.decimal(lot.costPerShare)) }
+            }
+            .font(.caption)
             TextField("配對股數", text: Binding(
                 get: { viewModel.allocations[lot.id] ?? "" },
                 set: { viewModel.allocations[lot.id] = $0 }
@@ -102,17 +109,26 @@ struct SaleEditorView: View {
     }
 
     private var resultSection: some View {
-        Section("各批次已實現損益") {
+        Section {
             ForEach(viewModel.allocationSummary, id: \.lotDate) { entry in
-                LabeledContent(Format.date(entry.lotDate)) {
-                    Text(Format.signedDecimal(entry.realizedResult))
-                        .foregroundStyle(entry.realizedResult < 0 ? .green : .red)
+                VStack(alignment: .leading, spacing: 4) {
+                    LabeledContent(Format.date(entry.lotDate)) {
+                        Text(Format.signedDecimal(entry.realizedResult))
+                            .foregroundStyle(entry.realizedResult < 0 ? .green : .red)
+                    }
+                    // The original purchase price, so the user can judge the
+                    // sale price against it without leaving this screen.
+                    Text("買進 \(Format.decimal(entry.lotCostPerShare))／賣出 \(Format.decimal(entry.salePricePerShare)) × \(entry.quantity) 股")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
             LabeledContent("合計") {
                 Text(Format.signedDecimal(viewModel.totalAllocationResult))
                     .font(.headline)
             }
+        } header: {
+            Text("各批次已實現損益")
         }
     }
 

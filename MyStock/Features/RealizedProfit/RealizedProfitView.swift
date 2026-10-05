@@ -23,11 +23,11 @@ struct RealizedProfitView: View {
                 }
 
                 Section("合計") {
-                    LabeledContent("已實現損益") {
-                        Text(viewModel.realizedText)
-                            .font(.headline)
-                            .foregroundStyle(color(for: viewModel.result?.realizedTotal))
-                    }
+                    LabeledContent("營業收入", value: viewModel.grossProceedsText)
+                    LabeledContent("成本", value: viewModel.costBasisText)
+                    LabeledContent("損益", value: viewModel.realizedText)
+                        .font(.headline)
+                    LabeledContent("報酬率", value: viewModel.returnPercentageText)
                     LabeledContent("筆數", value: viewModel.saleCountText)
                     LabeledContent("扣除費用與稅", value: viewModel.deductionText)
                 }
@@ -35,9 +35,14 @@ struct RealizedProfitView: View {
                 if let result = viewModel.result, !result.bySymbol.isEmpty {
                     Section("依代號") {
                         ForEach(result.bySymbol, id: \.symbol) { group in
-                            LabeledContent(label(for: group.symbol)) {
-                                Text(Format.signedDecimal(group.realizedTotal))
-                                    .foregroundStyle(color(for: group.realizedTotal))
+                            VStack(alignment: .leading, spacing: 4) {
+                                LabeledContent(label(for: group.symbol)) {
+                                    Text(Format.signedDecimal(group.realizedTotal))
+                                        .foregroundStyle(color(for: group.realizedTotal))
+                                }
+                                Text("營業收入 \(Format.decimal(group.grossProceedsTotal))　成本 \(Format.decimal(group.costBasisTotal))　報酬率 \(percentageText(group.returnPercentage))")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                             }
                         }
                     }
@@ -55,17 +60,29 @@ struct RealizedProfitView: View {
                                         .foregroundStyle(color(for: sale.realizedResult))
                                 }
                                 .font(.subheadline)
-                                Text("賣出 \(sale.quantity) 股 @ \(Format.decimal(sale.pricePerShare))")
+                                Text("賣出 \(sale.quantity) 股 @ \(Format.decimal(sale.pricePerShare))　營業收入 \(Format.decimal(sale.grossProceeds))")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Text("成本 \(Format.decimal(sale.costBasis))　損益 \(Format.signedDecimal(sale.realizedResult))　報酬率 \(percentageText(sale.returnPercentage))")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                                 Text("手續費 \(Format.money(sale.commission))・交易稅 \(Format.money(sale.transactionTax))")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
-                                ForEach(sale.allocations, id: \.lotDate) { allocation in
-                                    Text("配對 \(Format.date(allocation.lotDate)) \(allocation.quantity) 股 → \(Format.signedDecimal(allocation.realizedResult))")
+                                // Behind a disclosure, because a sale that draws on several lots would
+                                // otherwise bury the summary line.
+                                DisclosureGroup("配對明細（\(sale.allocations.count) 筆）") {
+                                    ForEach(Array(sale.allocations.enumerated()), id: \.offset) { _, allocation in
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text("\(Format.date(allocation.lotDate))　\(allocation.quantity) 股")
+                                            Text("買進 \(Format.decimal(allocation.lotCostPerShare)) → 賣出 \(Format.decimal(allocation.salePricePerShare))　損益 \(Format.signedDecimal(allocation.realizedResult))")
+                                                .font(.caption2)
+                                                .foregroundStyle(.secondary)
+                                        }
                                         .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                    }
                                 }
+                                .font(.caption)
                                 if !sale.isCompleteAllocation {
                                     Label(
                                         "配對不足，\(sale.allocatedQuantity)/\(sale.quantity) 股",
@@ -120,6 +137,13 @@ struct RealizedProfitView: View {
             return symbol
         }
         return "\(symbol) \(name)"
+    }
+
+    /// A return over a zero cost basis has no meaning, so say so rather than
+    /// printing a percentage that implies one.
+    private func percentageText(_ value: Decimal?) -> String {
+        guard let value else { return "不適用" }
+        return Format.percent(value)
     }
 
     private func color(for value: Decimal?) -> Color {
